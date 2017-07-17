@@ -66,7 +66,7 @@ static void store_guest(struct ir *ir, struct ir_value *addr,
 #define LOAD_GPR_ALT_I32(n)         LOAD_CTX_I32(ralt[n])
 #define STORE_GPR_ALT_I32(n, v)     STORE_CTX_I32(ralt[n], v)
 
-#define LOAD_I8(ea)                 ir_load_guest(ir, ea, VALUE_I8/*, use_fastmem(block, addr)*/)
+#define LOAD_I8(ea)                 AND_IMM_I32(ir_load_guest(ir, ea, VALUE_I32/*, use_fastmem(block, addr)*/), 0xff)
 #define LOAD_I16(ea)                ir_load_guest(ir, ea, VALUE_I16/*, use_fastmem(block, addr)*/)
 #define LOAD_I32(ea)                ir_load_guest(ir, ea, VALUE_I32/*, use_fastmem(block, addr)*/)
 //#define LOAD_I64(ea)                load_guest(ir, ea, VALUE_I64, use_fastmem(block, addr)*/)
