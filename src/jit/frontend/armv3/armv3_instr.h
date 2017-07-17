@@ -138,28 +138,27 @@ INSTR(MLA) {
 //ARMV3_INSTR(LDR,     "ldr{cond}{b}{t} {rd}, {addr}",                   xxxx01xxxxx1xxxxxxxxxxxxxxxxxxxx, 1, FLAG_XFR)
 /* LDR{cond}{b}{t} {rd}, {addr} */
 INSTR(LDR) {
+  I32 base;
+  I32 final;
+  I32 ea;
+  I32 data;
 
   /* parse offset */
   uint32_t offset = 0;
   if (i.xfr.i) {
-    // TODO
-    printf("\nThis should not happen, exiting\n");
-    exit(-1); 
+    // TODO (this should not happen yet)
     //uint32_t carry;
     //PARSE_SHIFT(addr, i.xfr_reg.rm, i.xfr_reg.shift, offset, carry);
   } else  {
     offset = i.xfr_imm.imm;
   }
 
-  I32 base = LOAD_GPR_I32(i.xfr.rn);
-  if (i.xfr.rn==15)
-    base = ADD_IMM_I32(base, 8);
-  I32 final = base;
+  base = LOAD_RN(i.xfr.rn);
   if (i.xfr.u)
-    final = ADD_IMM_I32(final, offset);
+    final = ADD_IMM_I32(base, offset);
   else
-    final = SUB_IMM_I32(final, offset);
-  I32 ea = i.xfr.p ? final : base;
+    final = SUB_IMM_I32(base, offset);
+  ea = i.xfr.p ? final : base;
 
   /*
    * writeback is applied in pipeline before memory is read.
@@ -171,7 +170,6 @@ INSTR(LDR) {
 
   if (i.xfr.l) {
     /* load data */
-    I32 data = 0;
     if (i.xfr.b) {
       data = LOAD_I8(ea);
     } else {

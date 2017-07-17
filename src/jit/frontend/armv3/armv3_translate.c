@@ -256,9 +256,9 @@ static void store_guest(struct ir *ir, struct ir_value *addr,
                                       ir_call_1(ir, load_tlb, data);                                           \
                                     }
 
+#define LOAD_RN(n) (n==15) ? ADD_IMM_I32(LOAD_GPR_I32(n),  8) : LOAD_GPR_I32(n)
+#define LOAD_RD(d) (d==15) ? ADD_IMM_I32(LOAD_GPR_I32(d), 12) : LOAD_GPR_I32(d)
 
-//TODO #define LOAD_RN(rn)                 armv3_translate_load_rn(CTX, addr, rn)
-//TODO #define LOAD_RD(rd)                 armv3_translate_load_rd(CTX, addr, rd)
 //TODO #define PARSE_SHIFT(addr, reg, shift, offset, carry)        { armv3_translate_parse_shift(addr, reg, shift, &offset, &carry); }
 
 /* clang-format on */
