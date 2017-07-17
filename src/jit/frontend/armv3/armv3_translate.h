@@ -12,7 +12,7 @@ typedef void (*armv3_translate_cb)(struct armv3_guest *, struct jit_block *,
 
 extern armv3_translate_cb armv3_translators[NUM_ARMV3_OPS];
 
-static inline armv3_translate_cb armv3_get_translator(uint16_t instr) {
+static inline armv3_translate_cb armv3_get_translator(uint32_t instr) {
   return armv3_translators[armv3_get_op(instr)];
 }
 

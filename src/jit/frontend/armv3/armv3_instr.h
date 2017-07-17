@@ -139,11 +139,6 @@ INSTR(MLA) {
 /* LDR{cond}{b}{t} {rd}, {addr} */
 INSTR(LDR) {
 
- if (i.xfr.b) 
-  printf("ARM: LDRB R%d, R%d, #%d\n",i.xfr.rd, i.xfr.rn, i.xfr_imm.imm);
-else
-  printf("ARM: LDR R%d, R%d, #%d\n",i.xfr.rd, i.xfr.rn, i.xfr_imm.imm);
-
   /* parse offset */
   uint32_t offset = 0;
   if (i.xfr.i) {

@@ -34,11 +34,6 @@ static void armv3_frontend_dump_code(struct jit_frontend *base,
   }
 }
 
-//TEMP HACK
-void armv3_translate_LDR(struct armv3_guest *guest, struct jit_block *block,
-                        struct ir *ir, uint32_t addr, union armv3_instr i,
-                        int flags);
-
 static void armv3_frontend_translate_code(struct jit_frontend *base,
                                           struct jit_block *block,
                                           struct ir *ir) {
@@ -57,9 +52,7 @@ static void armv3_frontend_translate_code(struct jit_frontend *base,
       armv3_translate_cb cb = armv3_get_translator(data);
       CHECK_NOTNULL(cb);
       ir_source_info(ir, addr, offset / 4);
-      // TEMP HACK as cb is not correct (?)
-      //cb(guest, block, ir, addr, i, flags);
-      armv3_translate_LDR(guest, block, ir, addr, i, flags);
+      cb(guest, block, ir, addr, i, flags);
       jitted = 1;
     }
     /* else if (def->op == ARMV3_OP_ADD && (i.xfr.i==0) && !i.data.s && (i.raw >> 28) == COND_AL) {
