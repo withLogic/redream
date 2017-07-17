@@ -222,6 +222,7 @@ set(RELIB_SOURCES
   src/jit/frontend/armv3/armv3_disasm.c
   src/jit/frontend/armv3/armv3_fallback.c
   src/jit/frontend/armv3/armv3_frontend.c
+  src/jit/frontend/armv3/armv3_translate.c
   src/jit/frontend/sh4/sh4_disasm.c
   src/jit/frontend/sh4/sh4_fallback.c
   src/jit/frontend/sh4/sh4_frontend.c

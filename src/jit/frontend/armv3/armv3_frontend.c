@@ -3,6 +3,7 @@
 #include "jit/frontend/armv3/armv3_disasm.h"
 #include "jit/frontend/armv3/armv3_fallback.h"
 #include "jit/frontend/armv3/armv3_guest.h"
+#include "jit/frontend/armv3/armv3_translate.h"
 #include "jit/ir/ir.h"
 #include "jit/jit.h"
 
@@ -33,6 +34,11 @@ static void armv3_frontend_dump_code(struct jit_frontend *base,
   }
 }
 
+//TEMP HACK
+void armv3_translate_LDR(struct armv3_guest *guest, struct jit_block *block,
+                        struct ir *ir, uint32_t addr, union armv3_instr i,
+                        int flags);
+
 static void armv3_frontend_translate_code(struct jit_frontend *base,
                                           struct jit_block *block,
                                           struct ir *ir) {
@@ -44,8 +50,26 @@ static void armv3_frontend_translate_code(struct jit_frontend *base,
     uint32_t data = guest->r32(guest->space, addr);
     struct jit_opdef *def = armv3_get_opdef(data);
 
-    ir_source_info(ir, addr, offset / 4);
-    ir_fallback(ir, def->fallback, addr, data);
+    union armv3_instr i = {data};
+    int jitted = 0;
+    if (def->op == ARMV3_OP_LDR && (i.xfr.i==0) && (i.raw >> 28) == COND_AL) {
+      int flags = 0;
+      armv3_translate_cb cb = armv3_get_translator(data);
+      CHECK_NOTNULL(cb);
+      ir_source_info(ir, addr, offset / 4);
+      // TEMP HACK as cb is not correct (?)
+      //cb(guest, block, ir, addr, i, flags);
+      armv3_translate_LDR(guest, block, ir, addr, i, flags);
+      jitted = 1;
+    }
+    /* else if (def->op == ARMV3_OP_ADD && (i.xfr.i==0) && !i.data.s && (i.raw >> 28) == COND_AL) {
+      printf("ARM: %s\n",def->desc);
+    }*/
+    if (jitted==0)
+    {
+        ir_source_info(ir, addr, offset / 4);
+        ir_fallback(ir, def->fallback, addr, data);
+    }
   }
 }
 
