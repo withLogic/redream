@@ -33,7 +33,7 @@ static void store_guest(struct ir *ir, struct ir_value *addr,
 #define I8                          struct ir_value*
 #define I16                         struct ir_value*
 #define I32                         struct ir_value*
-//#define I64                         struct ir_value*
+#define I64                         struct ir_value*
 //#define F32                         struct ir_value*
 //#define F64                         struct ir_value*
 //#define V128                        struct ir_value*
@@ -165,16 +165,16 @@ static void store_guest(struct ir *ir, struct ir_value *addr,
 #define AND_I8(a, b)                ir_and(ir, a, b)
 #define AND_I16                     AND_I8
 #define AND_I32                     AND_I8
-//#define AND_I64                     AND_I8
+#define AND_I64                     AND_I8
 #define AND_IMM_I8(a, b)            AND_I8(a, ir_alloc_i8(ir, b))
 #define AND_IMM_I16(a, b)           AND_I8(a, ir_alloc_i16(ir, b))
 #define AND_IMM_I32(a, b)           AND_I8(a, ir_alloc_i32(ir, b))
-//#define AND_IMM_I64(a, b)           AND_I8(a, ir_alloc_i64(ir, b))
+#define AND_IMM_I64(a, b)           AND_I8(a, ir_alloc_i64(ir, b))
 
 #define OR_I8(a, b)                 ir_or(ir, a, b)
 #define OR_I16                      OR_I8
 #define OR_I32                      OR_I8
-//#define OR_I64                      OR_I8
+#define OR_I64                      OR_I8
 #define OR_IMM_I8(a, b)             OR_I8(a, ir_alloc_i8(ir, b))
 #define OR_IMM_I16(a, b)            OR_I8(a, ir_alloc_i16(ir, b))
 #define OR_IMM_I32(a, b)            OR_I8(a, ir_alloc_i32(ir, b))
@@ -197,7 +197,7 @@ static void store_guest(struct ir *ir, struct ir_value *addr,
 #define SHL_I8(v, n)                ir_shl(ir, v, n)
 #define SHL_I16                     SHL_I8
 #define SHL_I32                     SHL_I8
-//#define SHL_I64                     SHL_I8
+#define SHL_I64                     SHL_I8
 #define SHL_IMM_I8(v, n)            ir_shli(ir, v, n)
 #define SHL_IMM_I16                 SHL_IMM_I8
 #define SHL_IMM_I32                 SHL_IMM_I8
@@ -206,7 +206,7 @@ static void store_guest(struct ir *ir, struct ir_value *addr,
 #define ASHR_I8(v, n)               ir_ashr(ir, v, n)
 #define ASHR_I16                    ASHR_I8
 #define ASHR_I32                    ASHR_I8
-//#define ASHR_I64                    ASHR_I8
+#define ASHR_I64                    ASHR_I8
 #define ASHR_IMM_I8(v, n)           ir_ashri(ir, v, n)
 #define ASHR_IMM_I16                ASHR_IMM_I8
 #define ASHR_IMM_I32                ASHR_IMM_I8
@@ -215,11 +215,11 @@ static void store_guest(struct ir *ir, struct ir_value *addr,
 #define LSHR_I8(v, n)               ir_lshr(ir, v, n)
 #define LSHR_I16                    LSHR_I8
 #define LSHR_I32                    LSHR_I8
-//#define LSHR_I64                    LSHR_I8
+#define LSHR_I64                    LSHR_I8
 #define LSHR_IMM_I8(v, n)           ir_lshri(ir, v, n)
 #define LSHR_IMM_I16                LSHR_IMM_I8
 #define LSHR_IMM_I32                LSHR_IMM_I8
-//#define LSHR_IMM_I64                LSHR_IMM_I8
+#define LSHR_IMM_I64                LSHR_IMM_I8
 
 #define ASHD_I32(v, n)              ir_ashd(ir, v, n)
 #define LSHD_I32(v, n)              ir_lshd(ir, v, n)

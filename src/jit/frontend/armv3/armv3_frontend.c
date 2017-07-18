@@ -47,8 +47,8 @@ static void armv3_frontend_translate_code(struct jit_frontend *base,
 
     union armv3_instr i = {data};
     int jitted = 0;
-    if  ( (def->op == ARMV3_OP_LDR && (i.xfr.i==0) && (i.raw >> 28) == COND_AL) ||
-          (def->op == ARMV3_OP_STR && (i.xfr.i==0) && (i.raw >> 28) == COND_AL) )
+    if  ( (def->op == ARMV3_OP_LDR && (i.raw >> 28) == COND_AL) ||
+          (def->op == ARMV3_OP_STR && (i.raw >> 28) == COND_AL) )
     {
       int flags = 0;
       armv3_translate_cb cb = armv3_get_translator(data);
