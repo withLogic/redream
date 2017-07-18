@@ -135,9 +135,10 @@ INSTR(MLA) {
   /* TODO */
 }
 
-//ARMV3_INSTR(LDR,     "ldr{cond}{b}{t} {rd}, {addr}",                   xxxx01xxxxx1xxxxxxxxxxxxxxxxxxxx, 1, FLAG_XFR)
-/* LDR{cond}{b}{t} {rd}, {addr} */
-INSTR(LDR) {
+
+static inline void armv3_translate_memop(struct armv3_guest *guest, struct jit_block *block,
+                            struct ir *ir, uint32_t addr, union armv3_instr i, 
+                            int flags) {
   I32 base;
   I32 final;
   I32 ea;
@@ -171,7 +172,7 @@ INSTR(LDR) {
   if (i.xfr.l) {
     /* load data */
     if (i.xfr.b) {
-      data = LOAD_I8(ea);
+      data = ZEXT_I8_I32(LOAD_I8(ea));
     } else {
       data = LOAD_I32(ea);
     }
@@ -179,12 +180,31 @@ INSTR(LDR) {
     STORE_GPR_IMM_I32(15, addr + 4);
     STORE_GPR_I32(i.xfr.rd, data);
   } 
+  else {
+    /* store data */
+      data = LOAD_RD(i.xfr.rd);
+    if (i.xfr.b) {
+      data = AND_IMM_I32(data, 0xff);
+      data->type = VALUE_I8;
+      STORE_I8(ea, data);
+    } else {
+      STORE_I32(ea, data);
+    }
+
+    STORE_GPR_IMM_I32(15, addr + 4);
+  }
+}
+
+//ARMV3_INSTR(LDR,     "ldr{cond}{b}{t} {rd}, {addr}",                   xxxx01xxxxx1xxxxxxxxxxxxxxxxxxxx, 1, FLAG_XFR)
+/* LDR{cond}{b}{t} {rd}, {addr} */
+INSTR(LDR) {
+  armv3_translate_memop(guest, block, ir, addr, i, flags);
 }
 
 //ARMV3_INSTR(STR,     "str{cond}{b}{t} {rd}, {addr}",                   xxxx01xxxxx0xxxxxxxxxxxxxxxxxxxx, 1, FLAG_XFR)
 /* STR{cond}{b}{t} {rd}, {addr} */
 INSTR(STR) {
-  /* TODO */
+  armv3_translate_memop(guest, block, ir, addr, i, flags);
 }
 
 //ARMV3_INSTR(LDM,     "ldm{cond}{stack} {rn}{!}, {rlist}{^}",           xxxx100xxxx1xxxxxxxxxxxxxxxxxxxx, 1, FLAG_BLK)

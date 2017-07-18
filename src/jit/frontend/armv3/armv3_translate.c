@@ -46,15 +46,15 @@ static void store_guest(struct ir *ir, struct ir_value *addr,
 #define LOAD_CTX_I8(m)              ir_load_context(ir, offsetof(struct armv3_context, m), VALUE_I8)
 #define LOAD_CTX_I16(m)             ir_load_context(ir, offsetof(struct armv3_context, m), VALUE_I16)
 #define LOAD_CTX_I32(m)             ir_load_context(ir, offsetof(struct armv3_context, m), VALUE_I32)
-//#define LOAD_CTX_I64(m)             ir_load_context(ir, offsetof(struct armv3_context, m), VALUE_I64)
-//#define LOAD_CTX_F32(m)             ir_load_context(ir, offsetof(struct armv3_context, m), VALUE_F32)
-//#define LOAD_CTX_F64(m)             ir_load_context(ir, offsetof(struct armv3_context, m), VALUE_F64)
-//#define LOAD_CTX_V128(m)            ir_load_context(ir, offsetof(struct armv3_context, m), VALUE_V128)
+//#define LOAD_CTX_I64(m)           ir_load_context(ir, offsetof(struct armv3_context, m), VALUE_I64)
+//#define LOAD_CTX_F32(m)           ir_load_context(ir, offsetof(struct armv3_context, m), VALUE_F32)
+//#define LOAD_CTX_F64(m)           ir_load_context(ir, offsetof(struct armv3_context, m), VALUE_F64)
+//#define LOAD_CTX_V128(m)          ir_load_context(ir, offsetof(struct armv3_context, m), VALUE_V128)
 #define STORE_CTX_I32(m, v)         ir_store_context(ir, offsetof(struct armv3_context, m), v);
-//#define STORE_CTX_I64(m, v)         ir_store_context(ir, offsetof(struct armv3_context, m), v);
-//#define STORE_CTX_F32(m, v)         ir_store_context(ir, offsetof(struct armv3_context, m), v);
-//#define STORE_CTX_F64(m, v)         ir_store_context(ir, offsetof(struct armv3_context, m), v);
-//#define STORE_CTX_V128(m, v)        ir_store_context(ir, offsetof(struct armv3_context, m), v);
+//#define STORE_CTX_I64(m, v)       ir_store_context(ir, offsetof(struct armv3_context, m), v);
+//#define STORE_CTX_F32(m, v)       ir_store_context(ir, offsetof(struct armv3_context, m), v);
+//#define STORE_CTX_F64(m, v)       ir_store_context(ir, offsetof(struct armv3_context, m), v);
+//#define STORE_CTX_V128(m, v)      ir_store_context(ir, offsetof(struct armv3_context, m), v);
 #define STORE_CTX_IMM_I32(m, v)     STORE_CTX_I32(m, ir_alloc_i32(ir, v))
 
 #define LOAD_GPR_I8(n)              LOAD_CTX_I8(r[n])
@@ -63,19 +63,16 @@ static void store_guest(struct ir *ir, struct ir_value *addr,
 #define STORE_GPR_I32(n, v)         STORE_CTX_I32(r[n], v);
 #define STORE_GPR_IMM_I32(n, v)     STORE_CTX_IMM_I32(r[n], v)
 
-#define LOAD_GPR_ALT_I32(n)         LOAD_CTX_I32(ralt[n])
-#define STORE_GPR_ALT_I32(n, v)     STORE_CTX_I32(ralt[n], v)
-
-#define LOAD_I8(ea)                 AND_IMM_I32(ir_load_guest(ir, ea, VALUE_I32/*, use_fastmem(block, addr)*/), 0xff)
-#define LOAD_I16(ea)                ir_load_guest(ir, ea, VALUE_I16/*, use_fastmem(block, addr)*/)
-#define LOAD_I32(ea)                ir_load_guest(ir, ea, VALUE_I32/*, use_fastmem(block, addr)*/)
-//#define LOAD_I64(ea)                load_guest(ir, ea, VALUE_I64, use_fastmem(block, addr)*/)
+#define LOAD_I8(ea)                 load_guest(ir, ea, VALUE_I8,  use_fastmem(block, addr))
+#define LOAD_I16(ea)                load_guest(ir, ea, VALUE_I16, use_fastmem(block, addr))
+#define LOAD_I32(ea)                load_guest(ir, ea, VALUE_I32, use_fastmem(block, addr))
+//#define LOAD_I64(ea)              load_guest(ir, ea, VALUE_I64, use_fastmem(block, addr))
 #define LOAD_IMM_I8(ea)             LOAD_I8(ir_alloc_i32(ir, ea))
 #define LOAD_IMM_I16(ea)            LOAD_I16(ir_alloc_i32(ir, ea))
 #define LOAD_IMM_I32(ea)            LOAD_I32(ir_alloc_i32(ir, ea))
-//#define LOAD_IMM_I64(ea)            LOAD_I64(ir_alloc_i32(ir, ea))
+//#define LOAD_IMM_I64(ea)          LOAD_I64(ir_alloc_i32(ir, ea))
 
-#define STORE_I8(ea, v)             ir_store_guest(ir, ea, v/*, use_fastmem(block, addr)*/)
+#define STORE_I8(ea, v)             store_guest(ir, ea, v, use_fastmem(block, addr))
 #define STORE_I16                   STORE_I8
 #define STORE_I32                   STORE_I8
 //#define STORE_I64                   STORE_I8
