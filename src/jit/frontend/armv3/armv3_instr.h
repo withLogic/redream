@@ -154,7 +154,7 @@ static inline void armv3_translate_memop(struct armv3_guest *guest, struct jit_b
     offset = i.xfr_imm.imm;
   }
 
-  base = LOAD_RN(i.xfr.rn);
+  base = LOAD_RN_I32(i.xfr.rn);
   if (i.xfr.u)
     final = ADD_IMM_I32(base, offset);
   else
@@ -172,7 +172,7 @@ static inline void armv3_translate_memop(struct armv3_guest *guest, struct jit_b
   if (i.xfr.l) {
     /* load data */
     if (i.xfr.b) {
-      data = ZEXT_I8_I32(LOAD_I8(ea));
+      data = LOAD_I8(ea);
     } else {
       data = LOAD_I32(ea);
     }
@@ -182,12 +182,11 @@ static inline void armv3_translate_memop(struct armv3_guest *guest, struct jit_b
   } 
   else {
     /* store data */
-      data = LOAD_RD(i.xfr.rd);
     if (i.xfr.b) {
-      data = AND_IMM_I32(data, 0xff);
-      data->type = VALUE_I8;
+      data = LOAD_RD_I8(i.xfr.rd);
       STORE_I8(ea, data);
     } else {
+      data = LOAD_RD_I32(i.xfr.rd);
       STORE_I32(ea, data);
     }
 

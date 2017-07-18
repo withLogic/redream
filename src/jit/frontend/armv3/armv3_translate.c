@@ -63,7 +63,7 @@ static void store_guest(struct ir *ir, struct ir_value *addr,
 #define STORE_GPR_I32(n, v)         STORE_CTX_I32(r[n], v);
 #define STORE_GPR_IMM_I32(n, v)     STORE_CTX_IMM_I32(r[n], v)
 
-#define LOAD_I8(ea)                 load_guest(ir, ea, VALUE_I8,  use_fastmem(block, addr))
+#define LOAD_I8(ea)                 ZEXT_I8_I32(load_guest(ir, ea, VALUE_I8,  use_fastmem(block, addr)))
 #define LOAD_I16(ea)                load_guest(ir, ea, VALUE_I16, use_fastmem(block, addr))
 #define LOAD_I32(ea)                load_guest(ir, ea, VALUE_I32, use_fastmem(block, addr))
 //#define LOAD_I64(ea)              load_guest(ir, ea, VALUE_I64, use_fastmem(block, addr))
@@ -253,8 +253,10 @@ static void store_guest(struct ir *ir, struct ir_value *addr,
                                       ir_call_1(ir, load_tlb, data);                                           \
                                     }
 
-#define LOAD_RN(n) ((n==15) ? ADD_IMM_I32(ir_alloc_i32(ir, addr),  8) : LOAD_GPR_I32(n))
-#define LOAD_RD(d) ((d==15) ? ADD_IMM_I32(ir_alloc_i32(ir, addr), 12) : LOAD_GPR_I32(d))
+#define LOAD_RN_I8(n)   ((n==15) ? ADD_IMM_I32(ir_alloc_i32(ir, addr),  8) : LOAD_GPR_I8(n))
+#define LOAD_RD_I8(d)   ((d==15) ? ADD_IMM_I32(ir_alloc_i32(ir, addr), 12) : LOAD_GPR_I8(d))
+#define LOAD_RN_I32(n)  ((n==15) ? ADD_IMM_I32(ir_alloc_i32(ir, addr),  8) : LOAD_GPR_I32(n))
+#define LOAD_RD_I32(d)  ((d==15) ? ADD_IMM_I32(ir_alloc_i32(ir, addr), 12) : LOAD_GPR_I32(d))
 
 //TODO #define PARSE_SHIFT(addr, reg, shift, offset, carry)        { armv3_translate_parse_shift(addr, reg, shift, &offset, &carry); }
 
