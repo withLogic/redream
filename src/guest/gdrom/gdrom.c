@@ -118,8 +118,8 @@ static void gdrom_spi_cdread(struct gdrom *gd) {
 
     /* fill DMA buffer with as many sectors as possible */
     int num_sectors = MIN(gd->cdr_num_sectors, max_dma_sectors);
-    gd->dma_size = gdrom_read_sectors(gd, gd->cdr_first_sector, gd->cdr_secfmt,
-                                      gd->cdr_secmask, num_sectors,
+    gd->dma_size = gdrom_read_sectors(gd, gd->cdr_first_sector, num_sectors,
+                                      gd->cdr_secfmt, gd->cdr_secmask,
                                       gd->dma_buffer, sizeof(gd->dma_buffer));
     gd->dma_head = 0;
 
@@ -134,8 +134,8 @@ static void gdrom_spi_cdread(struct gdrom *gd) {
 
     /* fill PIO buffer with as many sectors as possible */
     int num_sectors = MIN(gd->cdr_num_sectors, max_pio_sectors);
-    gd->pio_size = gdrom_read_sectors(gd, gd->cdr_first_sector, gd->cdr_secfmt,
-                                      gd->cdr_secmask, num_sectors,
+    gd->pio_size = gdrom_read_sectors(gd, gd->cdr_first_sector, num_sectors,
+                                      gd->cdr_secfmt, gd->cdr_secmask,
                                       gd->pio_buffer, sizeof(gd->pio_buffer));
     gd->pio_head = 0;
 
@@ -467,46 +467,37 @@ static void gdrom_event(struct gdrom *gd, enum gd_event ev, int arg) {
   cb(gd, arg);
 }
 
-int gdrom_copy_sectors(struct gdrom *gd, int fad, int fmt, int mask,
-                       int num_sectors, struct address_space *space,
-                       uint32_t dst) {
-  if (!gd->disc) {
-    LOG_WARNING("gdrom_copy_sectors failed, no disc");
-    return 0;
-  }
-
-  int read = 0;
-  uint8_t tmp[DISC_MAX_SECTOR_SIZE];
-
-  for (int i = fad; i < fad + num_sectors; i++) {
-    int n = gdrom_read_sectors(gd, i, fmt, mask, 1, tmp, sizeof(tmp));
-    as_memcpy_to_guest(space, dst + read, tmp, n);
-    read += n;
-  }
-
-  return read;
-}
-
-int gdrom_read_sectors(struct gdrom *gd, int fad, int fmt, int mask,
-                       int num_sectors, uint8_t *dst, int dst_size) {
+int gdrom_read_bytes(struct gdrom *gd, int fad, int len, uint8_t *dst,
+                     int dst_size) {
   if (!gd->disc) {
     LOG_WARNING("gdrom_read_sectors failed, no disc");
     return 0;
   }
 
-  int read = 0;
-  uint8_t data[DISC_MAX_SECTOR_SIZE];
+  return disc_read_bytes(gd->disc, fad, len, dst, dst_size);
+}
+
+int gdrom_read_sectors(struct gdrom *gd, int fad, int num_sectors, int fmt,
+                       int mask, uint8_t *dst, int dst_size) {
+  if (!gd->disc) {
+    LOG_WARNING("gdrom_read_sectors failed, no disc");
+    return 0;
+  }
 
   LOG_GDROM("gdrom_read_sectors [%d, %d)", fad, fad + num_sectors);
 
-  for (int i = fad; i < fad + num_sectors; i++) {
-    int n = disc_read_sector(gd->disc, i, fmt, mask, data);
-    CHECK_LE(read + n, dst_size);
-    memcpy(dst + read, data, n);
-    read += n;
+  return disc_read_sectors(gd->disc, fad, num_sectors, fmt, mask, dst,
+                           dst_size);
+}
+
+int gdrom_find_file(struct gdrom *gd, const char *filename, int *fad,
+                    int *len) {
+  if (!gd->disc) {
+    LOG_WARNING("gdrom_find_file failed, no disc");
+    return 0;
   }
 
-  return read;
+  return disc_find_file(gd->disc, filename, fad, len);
 }
 
 void gdrom_get_subcode(struct gdrom *gd, int format, uint8_t *data, int size) {
