@@ -55,7 +55,7 @@ static inline void armv3_translate_shift_ror( struct ir *ir,
   I64 tmp = ZEXT_I32_I64(in);
   nshifts = AND_IMM_I32(nshifts, 31);
   *out = TRUNC_I64_I32(OR_I64(SHL_I64(tmp, ir_sub(ir, ir_alloc_i32(ir, 32), nshifts)), LSHR_I64(tmp, nshifts)));
-  *carry = TRUNC_I64_I32(AND_IMM_I64(LSHR_IMM_I64(*out, 31), 0x1));
+  *carry = AND_IMM_I32(LSHR_IMM_I32(*out, 31), 0x1);
   //uint64_t tmp = (uint64_t)in;
   //n &= 31;
   //*out = (uint32_t)((tmp << (32 - n)) | (tmp >> n));
@@ -129,6 +129,47 @@ static inline void armv3_translate_parse_shift( struct jit_block *block,
   armv3_translate_shift(block, ir, src, type, data, n, value, carry);
 }
 
+static inline void armv3_translate_parse_op2( struct jit_block *block,
+                                              struct ir* ir, uint32_t addr, 
+                                              union armv3_instr i,
+                                              I32 *value, I32 *carry) {
+  if (i.data.i) {
+    /* op2 is an immediate */
+    uint32_t n = i.data_imm.rot << 1;
+
+    I32 imm = ir_alloc_i32(ir, i.data_imm.imm);
+    if (n) {
+      armv3_translate_shift_ror(ir, imm, ir_alloc_i32(ir,n), value, carry);
+    } else {
+      *value = imm;
+      *carry = ir_alloc_i32(ir, 0);
+      // TODO HANDLE CARRY
+      //*carry = C_SET(ctx->r[CPSR]);
+    }
+  } else {
+    /* op2 is as shifted register */
+    armv3_translate_parse_shift(block, ir, addr, i.data_reg.rm,
+                                i.data_reg.shift, value, carry);
+  }
+}
+/*
+ * data processing
+ */
+
+#define PARSE_OP2(value, carry) \
+  armv3_translate_parse_op2(block, ir, addr, i, value, carry)
+
+//#define CARRY() (C_SET(CTX->r[CPSR]))
+
+#define UPDATE_FLAGS_LOGICAL()                            \
+  if (i.data.s) {                                         \
+    printf("\nS bit, this should not happen, exiting\n"); \
+    exit(-1);                                             \
+    /*armv3_fallback_update_flags_logical(res, carry);*/  \
+    /*if (i.data.rd == 15) {*/                            \
+    /*  guest->restore_mode(guest->data);*/               \
+    }
+
 INSTR(INVALID) {
   /* TODO */
   // INVALID_INSTR();
@@ -149,13 +190,39 @@ INSTR(BL) {
 //ARMV3_INSTR(AND,     "and{cond}{s} {rd}, {rn}, {expr}",                xxxx00x0000xxxxxxxxxxxxxxxxxxxxx, 1, FLAG_DATA)
 /* AND{cond}{s} {rd}, {rn}, {expr} */
 INSTR(AND) {
-  /* TODO */
+  // TODO
+  //CHECK_COND();
+
+  I32 rhs;
+  I32 carry;
+  I32 lhs = LOAD_RN_I32(i.data.rn);
+  PARSE_OP2(&rhs, &carry);
+  I32 res = AND_I32(lhs, rhs);
+
+  STORE_GPR_IMM_I32(15, addr + 4);
+  STORE_GPR_I32(i.data.rd, res);
+
+  // TODO
+  UPDATE_FLAGS_LOGICAL();
 }
 
 //ARMV3_INSTR(EOR,     "eor{cond}{s} {rd}, {rn}, {expr}",                xxxx00x0001xxxxxxxxxxxxxxxxxxxxx, 1, FLAG_DATA)
 /* EOR{cond}{s} {rd}, {rn}, {expr} */
 INSTR(EOR) {
-  /* TODO */
+  // TODO
+  //CHECK_COND();
+
+  I32 rhs;
+  I32 carry;
+  I32 lhs = LOAD_RN_I32(i.data.rn);
+  PARSE_OP2(&rhs, &carry);
+  I32 res = XOR_I32(lhs, rhs);
+
+  STORE_GPR_IMM_I32(15, addr + 4);
+  STORE_GPR_I32(i.data.rd, res);
+
+  // TODO
+  UPDATE_FLAGS_LOGICAL();
 }
 
 //ARMV3_INSTR(SUB,     "sub{cond}{s} {rd}, {rn}, {expr}",                xxxx00x0010xxxxxxxxxxxxxxxxxxxxx, 1, FLAG_DATA)
@@ -221,7 +288,20 @@ INSTR(CMN) {
 //ARMV3_INSTR(ORR,     "orr{cond}{s} {rd}, {rn}, {expr}",                xxxx00x1100xxxxxxxxxxxxxxxxxxxxx, 1, FLAG_DATA)
 /* ORR{cond}{s} {rd}, {rn}, {expr} */
 INSTR(ORR) {
-  /* TODO */
+  // TODO
+  //CHECK_COND();
+
+  I32 rhs;
+  I32 carry;
+  I32 lhs = LOAD_RN_I32(i.data.rn);
+  PARSE_OP2(&rhs, &carry);
+  I32 res = OR_I32(lhs, rhs);
+
+  STORE_GPR_IMM_I32(15, addr + 4);
+  STORE_GPR_I32(i.data.rd, res);
+
+  // TODO
+  UPDATE_FLAGS_LOGICAL();
 }
 
 //ARMV3_INSTR(MOV,     "mov{cond}{s} {rd}, {expr}",                      xxxx00x1101x0000xxxxxxxxxxxxxxxx, 1, FLAG_DATA)
@@ -276,6 +356,9 @@ static inline void armv3_translate_memop(struct armv3_guest *guest, struct jit_b
   I32 data;
   I32 offset = 0;
   I32 carry = 0;
+
+  //TODO
+  //CHECK_COND();
 
   /* parse offset */
   if (i.xfr.i) {
