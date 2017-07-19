@@ -1,13 +1,11 @@
-static inline void armv3_translate_shift_lsl( struct armv3_guest *guest,
-                                              struct jit_block *block,
-                                              struct ir *ir,
-                                              I32 in, I32 n,
+static inline void armv3_translate_shift_lsl( struct ir *ir,
+                                              I32 in, I32 nshifts,
                                               I32 *out, I32 *carry) {
   /*
    * LSL by 32 has result zero carry out equal to bit 0 of input
    * LSL by more than 32 has result zero, carry out zero
    */
-  I64 tmp = SHL_I64(ZEXT_I32_I64(in), n);
+  I64 tmp = SHL_I64(ZEXT_I32_I64(in), nshifts);
   *out = TRUNC_I64_I32(tmp);
   *carry = TRUNC_I64_I32(LSHR_IMM_I64(AND_IMM_I64(tmp, UINT64_C(0x100000000)), 32));
   //uint64_t tmp = (uint64_t)in << n;
@@ -15,48 +13,38 @@ static inline void armv3_translate_shift_lsl( struct armv3_guest *guest,
   //*carry = (uint32_t)((tmp & 0x100000000) >> 32);
 }
 
-static inline void armv3_translate_shift_lsr( struct armv3_guest *guest,
-                                              struct jit_block *block,
-                                              struct ir *ir,
-                                              I32 in, I32 n,
+static inline void armv3_translate_shift_lsr( struct ir *ir,
+                                              I32 in, I32 nshifts,
                                               I32 *out, I32 *carry) {
   /*
    * LSR by 32 has result zero, carry out equal to bit 31 of Rm
    * LSR by more than 32 has result zero, carry out zero
    */
-  I64 tmp1 = ZEXT_I32_I64(in);
-  *out = TRUNC_I64_I32(LSHR_I64(tmp1, n));
-  I32 n2 = SUB_IMM_I32(n, 1);
-  I64 tmp2 = LSHR_I64(tmp1, n2);
-  *carry = TRUNC_I64_I32(AND_IMM_I64(tmp2, 0x1));
+  I64 tmp = ZEXT_I32_I64(in);
+  *out = TRUNC_I64_I32(LSHR_I64(tmp, nshifts));
+  *carry = TRUNC_I64_I32(AND_IMM_I64(LSHR_I64(tmp, SUB_IMM_I32(nshifts, 1)), 0x1));
   //uint64_t tmp = (uint64_t)in;
   //*out = (uint32_t)(tmp >> n);
   //*carry = (uint32_t)((tmp >> (n - 1)) & 0x1);
 }
 
-static inline void armv3_translate_shift_asr( struct armv3_guest *guest,
-                                              struct jit_block *block,
-                                              struct ir *ir,
-                                              I32 in, I32 n,
+static inline void armv3_translate_shift_asr( struct ir *ir,
+                                              I32 in, I32 nshifts,
                                               I32 *out, I32 *carry) {
   /*
    * ASR by 32 or more has result filled with and carry out equal to bit 31 of
    * input
    */
-  I64 tmp1 = SEXT_I32_I64(in);
-  *out = TRUNC_I64_I32(ASHR_I64(tmp1, n));
-  I32 n2 = SUB_IMM_I32(n, 1);
-  I64 tmp2 = ASHR_I64(tmp1, n2);
-  *carry = TRUNC_I64_I32(AND_IMM_I64(tmp2, 0x1));
+  I64 tmp = SEXT_I32_I64(in);
+  *out = TRUNC_I64_I32(ASHR_I64(tmp, nshifts));
+  *carry = TRUNC_I64_I32(AND_IMM_I64(ASHR_I64(tmp, SUB_IMM_I32(nshifts, 1)), 0x1));
   //int64_t tmp = (int64_t)(int32_t)in;
   //*out = (uint32_t)(tmp >> n);
   //*carry = (uint32_t)((tmp >> (n - 1)) & 0x1);
 }
 
-static inline void armv3_translate_shift_ror( struct armv3_guest *guest,
-                                              struct jit_block *block,
-                                              struct ir *ir,
-                                              I32 in, I32 n,
+static inline void armv3_translate_shift_ror( struct ir *ir,
+                                              I32 in, I32 nshifts,
                                               I32 *out, I32 *carry) {
   /*
    * ROR by 32 has result equal to input, carry out equal to bit 31 of input
@@ -64,11 +52,9 @@ static inline void armv3_translate_shift_ror( struct armv3_guest *guest,
    * out as ROR by n-32; therefore repeatedly subtract 32 from n until the
    * amount is in the range 1 to 32 and see above
    */
-  I64 tmp1 = ZEXT_I32_I64(in);
-  n = AND_IMM_I32(n, 31);
-  I64 tmp2 = SHL_I64(tmp1, ir_sub(ir, ir_alloc_i32(ir, 32), n));
-  I64 tmp3 = LSHR_I64(tmp1, n);
-  *out = TRUNC_I64_I32(OR_I64(tmp2, tmp3));
+  I64 tmp = ZEXT_I32_I64(in);
+  nshifts = AND_IMM_I32(nshifts, 31);
+  *out = TRUNC_I64_I32(OR_I64(SHL_I64(tmp, ir_sub(ir, ir_alloc_i32(ir, 32), nshifts)), LSHR_I64(tmp, nshifts)));
   *carry = TRUNC_I64_I32(AND_IMM_I64(LSHR_IMM_I64(*out, 31), 0x1));
   //uint64_t tmp = (uint64_t)in;
   //n &= 31;
@@ -76,8 +62,7 @@ static inline void armv3_translate_shift_ror( struct armv3_guest *guest,
   //*carry = (*out >> 31) & 0x1;
 }
 
-static void armv3_translate_shift(  struct armv3_guest *guest,
-                                    struct jit_block *block,
+static void armv3_translate_shift(  struct jit_block *block,
                                     struct ir *ir,
                                     enum armv3_shift_source src,
                                     enum armv3_shift_type type, I32 in,
@@ -99,16 +84,16 @@ static void armv3_translate_shift(  struct armv3_guest *guest,
   /*if (shifts)*/ {
     switch (type) {
       case SHIFT_LSL:
-        armv3_translate_shift_lsl(guest, block, ir, in, shifts, out, carry);
+        armv3_translate_shift_lsl(ir, in, shifts, out, carry);
         break;
       case SHIFT_LSR:
-        armv3_translate_shift_lsr(guest, block, ir, in, shifts, out, carry);
+        armv3_translate_shift_lsr(ir, in, shifts, out, carry);
         break;
       case SHIFT_ASR:
-        armv3_translate_shift_asr(guest, block, ir, in, shifts, out, carry);
+        armv3_translate_shift_asr(ir, in, shifts, out, carry);
         break;
       case SHIFT_ROR:
-        armv3_translate_shift_ror(guest, block, ir, in, shifts, out, carry);
+        armv3_translate_shift_ror(ir, in, shifts, out, carry);
         break;
       default:
         LOG_FATAL("Unsupported shift type");
@@ -116,8 +101,7 @@ static void armv3_translate_shift(  struct armv3_guest *guest,
     }
   }
 }
-static inline void armv3_translate_parse_shift( struct armv3_guest *guest,
-                                                struct jit_block *block,
+static inline void armv3_translate_parse_shift( struct jit_block *block,
                                                 struct ir *ir,
                                                 uint32_t addr, uint32_t reg,
                                                 uint32_t shift, I32 *value,
@@ -142,7 +126,7 @@ static inline void armv3_translate_parse_shift( struct armv3_guest *guest,
   } else {
     data = LOAD_GPR_I32(reg);
   }
-  armv3_translate_shift(guest, block, ir, src, type, data, n, value, carry);
+  armv3_translate_shift(block, ir, src, type, data, n, value, carry);
 }
 
 INSTR(INVALID) {
@@ -295,7 +279,7 @@ static inline void armv3_translate_memop(struct armv3_guest *guest, struct jit_b
 
   /* parse offset */
   if (i.xfr.i) {
-    armv3_translate_parse_shift(guest, block, ir, addr, i.xfr_reg.rm, i.xfr_reg.shift, &offset, &carry);
+    armv3_translate_parse_shift(block, ir, addr, i.xfr_reg.rm, i.xfr_reg.shift, &offset, &carry);
   } else  {
     offset = ir_alloc_i32(ir, i.xfr_imm.imm);
   }
