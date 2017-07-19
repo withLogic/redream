@@ -54,7 +54,7 @@ static inline void armv3_translate_shift_ror( struct ir *ir,
    */
   I64 tmp = ZEXT_I32_I64(in);
   nshifts = AND_IMM_I32(nshifts, 31);
-  *out = TRUNC_I64_I32(OR_I64(SHL_I64(tmp, ir_sub(ir, ir_alloc_i32(ir, 32), nshifts)), LSHR_I64(tmp, nshifts)));
+  *out = TRUNC_I64_I32(OR_I64(SHL_I64(tmp, SUB_I32(I32_IMM(32), nshifts)), LSHR_I64(tmp, nshifts)));
   *carry = AND_IMM_I32(LSHR_IMM_I32(*out, 31), 0x1);
   //uint64_t tmp = (uint64_t)in;
   //n &= 31;
@@ -69,7 +69,7 @@ static void armv3_translate_shift(  struct jit_block *block,
                                     uint32_t n, I32 *out, I32 *carry) {
   *out = in;
   // TODO: HANDLE CARRY
-  *carry = ir_alloc_i32(ir, 0);
+  *carry = I32_IMM(0);
   //*carry = C_SET(ctx->r[CPSR]);
 
   I32 shifts;
@@ -77,7 +77,7 @@ static void armv3_translate_shift(  struct jit_block *block,
     shifts = LOAD_GPR_I32(n);
   }
   else {
-    shifts = ir_alloc_i32(ir, n);
+    shifts = I32_IMM(n);
   }
 
   // TODO make sure we don't generate code if shifts==0
@@ -137,12 +137,12 @@ static inline void armv3_translate_parse_op2( struct jit_block *block,
     /* op2 is an immediate */
     uint32_t n = i.data_imm.rot << 1;
 
-    I32 imm = ir_alloc_i32(ir, i.data_imm.imm);
+    I32 imm = I32_IMM(i.data_imm.imm);
     if (n) {
-      armv3_translate_shift_ror(ir, imm, ir_alloc_i32(ir,n), value, carry);
+      armv3_translate_shift_ror(ir, imm, I32_IMM(n), value, carry);
     } else {
       *value = imm;
-      *carry = ir_alloc_i32(ir, 0);
+      *carry = I32_IMM(0);
       // TODO HANDLE CARRY
       //*carry = C_SET(ctx->r[CPSR]);
     }
@@ -228,19 +228,58 @@ INSTR(EOR) {
 //ARMV3_INSTR(SUB,     "sub{cond}{s} {rd}, {rn}, {expr}",                xxxx00x0010xxxxxxxxxxxxxxxxxxxxx, 1, FLAG_DATA)
 /* SUB{cond}{s} {rd}, {rn}, {expr} */
 INSTR(SUB) {
-  /* TODO */
+  // TODO
+  //CHECK_COND();
+
+  I32 rhs;
+  I32 carry;
+  I32 lhs = LOAD_RN_I32(i.data.rn);
+  PARSE_OP2(&rhs, &carry);
+  I32 res = SUB_I32(lhs, rhs);
+
+  STORE_GPR_IMM_I32(15, addr + 4);
+  STORE_GPR_I32(i.data.rd, res);
+
+  // TODO
+  // UPDATE_FLAGS_SUB();
 }
 
 //ARMV3_INSTR(RSB,     "rsb{cond}{s} {rd}, {rn}, {expr}",                xxxx00x0011xxxxxxxxxxxxxxxxxxxxx, 1, FLAG_DATA)
 /* RSB{cond}{s} {rd}, {rn}, {expr} */
 INSTR(RSB) {
-  /* TODO */
+  // TODO
+  //CHECK_COND();
+
+  I32 lhs;
+  I32 carry;
+  PARSE_OP2(&lhs, &carry);
+  I32 rhs = LOAD_RN_I32(i.data.rn);
+  I32 res = SUB_I32(lhs, rhs);
+
+  STORE_GPR_IMM_I32(15, addr + 4);
+  STORE_GPR_I32(i.data.rd, res);
+
+  // TODO
+  // UPDATE_FLAGS_SUB();
 }
 
 //ARMV3_INSTR(ADD,     "add{cond}{s} {rd}, {rn}, {expr}",                xxxx00x0100xxxxxxxxxxxxxxxxxxxxx, 1, FLAG_DATA)
 /* ADD{cond}{s} {rd}, {rn}, {expr} */
 INSTR(ADD) {
-  /* TODO */
+  // TODO
+  //CHECK_COND();
+
+  I32 rhs;
+  I32 carry;
+  I32 lhs = LOAD_RN_I32(i.data.rn);
+  PARSE_OP2(&rhs, &carry);
+  I32 res = ADD_I32(lhs, rhs);
+
+  STORE_GPR_IMM_I32(15, addr + 4);
+  STORE_GPR_I32(i.data.rd, res);
+
+  // TODO
+  // UPDATE_FLAGS_ADD();
 }
 
 //ARMV3_INSTR(ADC,     "adc{cond}{s} {rd}, {rn}, {expr}",                xxxx00x0101xxxxxxxxxxxxxxxxxxxxx, 1, FLAG_DATA)
@@ -307,19 +346,55 @@ INSTR(ORR) {
 //ARMV3_INSTR(MOV,     "mov{cond}{s} {rd}, {expr}",                      xxxx00x1101x0000xxxxxxxxxxxxxxxx, 1, FLAG_DATA)
 /* MOV{cond}{s} {rd}, {expr} */
 INSTR(MOV) {
-  /* TODO */
+  // TODO
+  // CHECK_COND();
+
+  I32 res;
+  I32 carry;
+  PARSE_OP2(&res, &carry);
+
+  STORE_GPR_IMM_I32(15, addr + 4);
+  STORE_GPR_I32(i.data.rd, res);
+
+  // TODO
+  UPDATE_FLAGS_LOGICAL();
 }
 
 //ARMV3_INSTR(BIC,     "bic{cond}{s} {rd}, {rn}, {expr}",                xxxx00x1110xxxxxxxxxxxxxxxxxxxxx, 1, FLAG_DATA)
 /* BIC{cond}{s} {rd}, {rn}, {expr} */
 INSTR(BIC) {
- /* TODO */
+  // TODO
+  // CHECK_COND();
+
+  I32 rhs;
+  I32 carry;
+  I32 lhs = LOAD_RN_I32(i.data.rn);
+  PARSE_OP2(&rhs, &carry);
+  I32 res = AND_I32(lhs, NOT_I32(rhs));
+
+  STORE_GPR_IMM_I32(15, addr + 4);
+  STORE_GPR_I32(i.data.rd, res);
+
+  // TODO
+  UPDATE_FLAGS_LOGICAL();
 }
 
 //ARMV3_INSTR(MVN,     "mvn{cond}{s} {rd}, {expr}",                      xxxx00x1111x0000xxxxxxxxxxxxxxxx, 1, FLAG_DATA)
 /* MVN{cond}{s} {rd}, {expr} */
 INSTR(MVN) {
-  /* TODO */
+  // TODO
+  // CHECK_COND();
+
+  I32 rhs;
+  I32 carry;
+  PARSE_OP2(&rhs, &carry);
+  I32 res = NOT_I32(rhs);
+
+  STORE_GPR_IMM_I32(15, addr + 4);
+  STORE_GPR_I32(i.data.rd, res);
+
+  // TODO
+  UPDATE_FLAGS_LOGICAL();
 }
 
 //ARMV3_INSTR(MRS,     "mrs{cond} {rd}, {psr}",                          xxxx00010x001111xxxx000000000000, 1, FLAG_PSR)
@@ -334,16 +409,61 @@ INSTR(MSR) {
   /* TODO */
 }
 
+/*
+ * multiply and multiply-accumulate
+ */
+#define UPDATE_FLAGS_MUL()                          \
+  if (i.mul.s) {                                    \
+    printf("This should not happen, exiting\n");    \
+    exit(-1);                                       \
+    /*armv3_fallback_update_flags_mul(CTX, res);*/  \
+  }
+
+// TODO
+//#define MAKE_CPSR_NZ(cpsr, n, z) \
+// (((cpsr) & ~(N_MASK | Z_MASK)) | ((n) << N_BIT) | ((z) << Z_BIT))
+
+// TODO
+//static void armv3_translate_update_flags_mul(struct armv3_context *ctx,
+//                                            uint32_t res) {
+//  int n = res & 0x80000000 ? 1 : 0;
+//  int z = res ? 0 : 1;
+//  ctx->r[CPSR] = MAKE_CPSR_NZ(ctx->r[CPSR], n, z);
+//}
+
 //ARMV3_INSTR(MUL,     "mul{cond}{s} {rd}, {rm}, {rs}",                  xxxx0000000xxxxxxxxxxxxx1001xxxx, 1, FLAG_MUL)
 /* MUL{cond}{s} {rd}, {rm}, {rs} */
 INSTR(MUL) {
-  /* TODO */
+  // TODO
+  // CHECK_COND();
+
+  I32 a = LOAD_RN_I32(i.mul.rm);
+  I32 b = LOAD_RN_I32(i.mul.rs);
+  I32 res = UMUL_I32(a, b); // UMUL or SMUL ??
+
+  STORE_GPR_IMM_I32(15, addr + 4);
+  STORE_GPR_I32(i.mul.rd, res);
+
+  // TODO
+  UPDATE_FLAGS_MUL();
 }
 
 //ARMV3_INSTR(MLA,     "mla{cond}{s} {rd}, {rm}, {rs}, {rn}",            xxxx0000001xxxxxxxxxxxxx1001xxxx, 1, FLAG_MUL)
 /* MLA{cond}{s} {rd}, {rm}, {rs}, {rn} */
 INSTR(MLA) {
-  /* TODO */
+  // TODO
+  // CHECK_COND();
+
+  I32 a = LOAD_RN_I32(i.mul.rm);
+  I32 b = LOAD_RN_I32(i.mul.rs);
+  I32 c = LOAD_RN_I32(i.mul.rn);
+  I32 res = ADD_I32(UMUL_I32(a, b), c);
+
+  STORE_GPR_IMM_I32(15, addr + 4);
+  STORE_GPR_I32(i.mul.rd, res);
+
+  // TODO
+  UPDATE_FLAGS_MUL();
 }
 
 
@@ -364,7 +484,7 @@ static inline void armv3_translate_memop(struct armv3_guest *guest, struct jit_b
   if (i.xfr.i) {
     armv3_translate_parse_shift(block, ir, addr, i.xfr_reg.rm, i.xfr_reg.shift, &offset, &carry);
   } else  {
-    offset = ir_alloc_i32(ir, i.xfr_imm.imm);
+    offset = I32_IMM(i.xfr_imm.imm);
   }
 
   base = LOAD_RN_I32(i.xfr.rn);

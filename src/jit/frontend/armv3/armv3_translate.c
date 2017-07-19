@@ -38,6 +38,7 @@ static void store_guest(struct ir *ir, struct ir_value *addr,
 //#define F64                         struct ir_value*
 //#define V128                        struct ir_value*
 
+#define I32_IMM(x)                  ir_alloc_i32(ir, x)
 #define CTX                         ((struct armv3_context *)jit->guest->ctx)
 
 #define NEXT_INSTR()               
