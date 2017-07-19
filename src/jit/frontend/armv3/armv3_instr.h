@@ -9,7 +9,7 @@ static inline void armv3_translate_shift_lsl( struct armv3_guest *guest,
    */
   I64 tmp = SHL_I64(ZEXT_I32_I64(in), n);
   *out = TRUNC_I64_I32(tmp);
-  *carry = TRUNC_I64_I32(LSHR_IMM_I64(AND_IMM_I64(tmp, 0x100000000ll), 32));
+  *carry = TRUNC_I64_I32(LSHR_IMM_I64(AND_IMM_I64(tmp, UINT64_C(0x100000000)), 32));
   //uint64_t tmp = (uint64_t)in << n;
   //*out = (uint32_t)tmp;
   //*carry = (uint32_t)((tmp & 0x100000000) >> 32);
