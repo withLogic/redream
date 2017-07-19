@@ -59,7 +59,9 @@ static void armv3_frontend_translate_code(struct jit_frontend *base,
           (def->op == ARMV3_OP_BIC && !i.data.s && (i.raw >> 28) == COND_AL) ||
           (def->op == ARMV3_OP_MVN && !i.data.s && (i.raw >> 28) == COND_AL) ||
           (def->op == ARMV3_OP_MUL && !i.mul.s  && (i.raw >> 28) == COND_AL) ||
-          (def->op == ARMV3_OP_MLA && !i.mul.s  && (i.raw >> 28) == COND_AL)
+          (def->op == ARMV3_OP_MLA && !i.mul.s  && (i.raw >> 28) == COND_AL) ||
+          (def->op == ARMV3_OP_LDM && !i.blk.s  && (i.raw >> 28) == COND_AL) ||
+          (def->op == ARMV3_OP_STM && !i.blk.s  && (i.raw >> 28) == COND_AL)
         )
     {
       int flags = 0;

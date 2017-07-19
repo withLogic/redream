@@ -542,13 +542,110 @@ INSTR(STR) {
 //ARMV3_INSTR(LDM,     "ldm{cond}{stack} {rn}{!}, {rlist}{^}",           xxxx100xxxx1xxxxxxxxxxxxxxxxxxxx, 1, FLAG_BLK)
 /* LDM{cond}{stack} {rn}{!}, {rlist}{^} */
 INSTR(LDM) {
-  /* TODO */
+  // TODO
+  // CHECK_COND();
+
+  I32 base = LOAD_RN_I32(i.blk.rn);
+  uint32_t offset = popcnt32(i.blk.rlist) * 4;
+  I32 final = i.blk.u ? ADD_IMM_I32(base, offset) : SUB_IMM_I32(base, offset);
+  I32 ea = base;
+
+  /* writeback is applied in pipeline before memory is read */
+  if (i.blk.w) {
+    STORE_GPR_I32(i.blk.rn, final);
+  }
+
+  STORE_GPR_IMM_I32(15, addr + 4);
+
+  for (int bit = 0; bit < 16; bit++) {
+    int reg = bit;
+
+    if (!i.blk.u) {
+      reg = 15 - bit;
+    }
+
+    if (i.blk.rlist & (1 << reg)) {
+      /* pre-increment */
+      if (i.blk.p) {
+        ea = i.blk.u ? ADD_IMM_I32(ea, 4) : SUB_IMM_I32(ea, 4);
+      }
+
+      /* user bank transfer */
+      if (i.blk.s && (i.blk.rlist & 0x8000) == 0) {
+        // TODO, this should not happen yet
+        // reg = armv3_reg_table[MODE()][reg];
+      }
+
+      STORE_GPR_I32(reg, LOAD_I32(ea));
+
+      /* post-increment */
+      if (!i.blk.p) {
+        ea = i.blk.u ? ADD_IMM_I32(ea, 4) : SUB_IMM_I32(ea, 4);
+      }
+    }
+  }
+
+  if ((i.blk.rlist & 0x8000) && i.blk.s) {
+    /* move SPSR into CPSR */
+    // TODO, this should not happen yet
+    // guest->restore_mode(guest->data);
+  }  
 }
 
 //ARMV3_INSTR(STM,     "stm{cond}{stack} {rn}{!}, {rlist}{^}",           xxxx100xxxx0xxxxxxxxxxxxxxxxxxxx, 1, FLAG_BLK)
 /* STM{cond}{stack} {rn}{!}, {rlist}{^} */
 INSTR(STM) {
-  /* TODO */
+  // TODO
+  // CHECK_COND();
+
+  I32 base = LOAD_RN_I32(i.blk.rn);
+  uint32_t offset = popcnt32(i.blk.rlist) * 4;
+  I32 final = i.blk.u ? ADD_IMM_I32(base, offset) : SUB_IMM_I32(base, offset);
+  int wrote = 0;
+
+  for (int bit = 0; bit < 16; bit++) {
+    int reg = bit;
+
+    if (!i.blk.u) {
+      reg = 15 - bit;
+    }
+
+    if (i.blk.rlist & (1 << reg)) {
+      /* pre-increment */
+      if (i.blk.p) {
+        base = i.blk.u ? ADD_IMM_I32(base, 4) : SUB_IMM_I32(base, 4);
+      }
+
+      /* user bank transfer */
+      if (i.blk.s) {
+        // TODO this should not happen yet
+        // reg = armv3_reg_table[MODE()][reg];
+      }
+
+      I32 data = LOAD_RD_I32(reg);
+      STORE_I32(base, data);
+
+      /* post-increment */
+      if (!i.blk.p) {
+        base = i.blk.u ? ADD_IMM_I32(base, 4) : SUB_IMM_I32(base, 4);
+      }
+
+      /*
+       * when write-back is specified, the base is written back at the end of
+       * the second cycle of the instruction. during a STM, the first register
+       * is written out at the start of the second cycle. a STM which includes
+       * storing the base, with the base as the first register to be stored,
+       * will therefore store the unchanged value, whereas with the base second
+       * or later in the transfer order, will store the modified value
+       */
+      if (i.blk.w && !wrote) {
+        STORE_GPR_I32(i.blk.rn, final);
+        wrote = 1;
+      }
+    }
+  }
+
+  STORE_GPR_IMM_I32(15, addr + 4);
 }
 
 //ARMV3_INSTR(SWP,     "swp{cond}{b} {rd}, {rm}, [{rn}]",                xxxx00010x00xxxxxxxx00001001xxxx, 1, FLAG_SWP)
