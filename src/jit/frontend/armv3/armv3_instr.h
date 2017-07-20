@@ -627,6 +627,9 @@ INSTR(STR) {
   armv3_translate_memop(guest, block, ir, addr, i, flags);
 }
 
+#define USER_MODE_REG_OFFSET    0 /* TODO */
+#define GET_USER_MODE_REG(r)    (r+USER_MODE_REG_OFFSET)
+
 //ARMV3_INSTR(LDM,     "ldm{cond}{stack} {rn}{!}, {rlist}{^}",           xxxx100xxxx1xxxxxxxxxxxxxxxxxxxx, 1, FLAG_BLK)
 /* LDM{cond}{stack} {rn}{!}, {rlist}{^} */
 INSTR(LDM) {
@@ -660,8 +663,7 @@ INSTR(LDM) {
 
       /* user bank transfer */
       if (i.blk.s && (i.blk.rlist & 0x8000) == 0) {
-        // TODO, this should not happen yet
-        // reg = armv3_reg_table[MODE()][reg];
+        reg = GET_USER_MODE_REG(reg);
       }
 
       STORE_GPR_I32(reg, LOAD_I32(ea));
@@ -675,8 +677,7 @@ INSTR(LDM) {
 
   if ((i.blk.rlist & 0x8000) && i.blk.s) {
     /* move SPSR into CPSR */
-    // TODO, this should not happen yet
-    // guest->restore_mode(guest->data);
+    RESTORE_MODE();
   }  
 }
 
@@ -706,8 +707,7 @@ INSTR(STM) {
 
       /* user bank transfer */
       if (i.blk.s) {
-        // TODO this should not happen yet
-        // reg = armv3_reg_table[MODE()][reg];
+        reg = GET_USER_MODE_REG(reg);
       }
 
       I32 data = LOAD_RD_I32(reg);

@@ -122,11 +122,11 @@ static void store_guest(struct ir *ir, struct ir_value *addr,
 #define ADD_I8(a, b)                ir_add(ir, a, b)
 #define ADD_I16                     ADD_I8
 #define ADD_I32                     ADD_I8
-//#define ADD_I64                     ADD_I8
+#define ADD_I64                     ADD_I8
 #define ADD_IMM_I8(a, b)            ADD_I8(a, ir_alloc_i8(ir, b))
 #define ADD_IMM_I16(a, b)           ADD_I8(a, ir_alloc_i16(ir, b))
 #define ADD_IMM_I32(a, b)           ADD_I8(a, ir_alloc_i32(ir, b))
-//#define ADD_IMM_I64(a, b)           ADD_I8(a, ir_alloc_i64(ir, b))
+#define ADD_IMM_I64(a, b)           ADD_I8(a, ir_alloc_i64(ir, b))
 
 #define SUB_I8(a, b)                ir_sub(ir, a, b)
 #define SUB_I16                     SUB_I8
@@ -199,7 +199,7 @@ static void store_guest(struct ir *ir, struct ir_value *addr,
 #define SHL_IMM_I8(v, n)            ir_shli(ir, v, n)
 #define SHL_IMM_I16                 SHL_IMM_I8
 #define SHL_IMM_I32                 SHL_IMM_I8
-//#define SHL_IMM_I64                 SHL_IMM_I8
+#define SHL_IMM_I64                 SHL_IMM_I8
 
 #define ASHR_I8(v, n)               ir_ashr(ir, v, n)
 #define ASHR_I16                    ASHR_I8
@@ -239,16 +239,19 @@ static void store_guest(struct ir *ir, struct ir_value *addr,
                                       ir_call_1(ir, swi_func, data);                                                     \
                                     }
 
-#define RESTORE_MODE()              {                                                                                   \
-                                      struct ir_value *swi_func = ir_alloc_i64(ir, (uint64_t)guest->restore_mode);      \
-                                      struct ir_value *data = ir_alloc_i64(ir, (uint64_t)guest->data);                  \
-                                      ir_call_1(ir, swi_func, data);                                                    \
+#define RESTORE_MODE()              {                                                                                           \
+                                      struct ir_value *restore_mode_func = ir_alloc_i64(ir, (uint64_t)guest->restore_mode);     \
+                                      struct ir_value *data = ir_alloc_i64(ir, (uint64_t)guest->data);                          \
+                                      ir_call_1(ir, restore_mode_func, data);                                                   \
                                     }
 
-#define LOAD_RN_I8(n)   ((n==15) ? ADD_IMM_I32(ir_alloc_i32(ir, addr),  8) : LOAD_GPR_I8(n))
-#define LOAD_RD_I8(d)   ((d==15) ? ADD_IMM_I32(ir_alloc_i32(ir, addr), 12) : LOAD_GPR_I8(d))
-#define LOAD_RN_I32(n)  ((n==15) ? ADD_IMM_I32(ir_alloc_i32(ir, addr),  8) : LOAD_GPR_I32(n))
-#define LOAD_RD_I32(d)  ((d==15) ? ADD_IMM_I32(ir_alloc_i32(ir, addr), 12) : LOAD_GPR_I32(d))
+#define LOAD_RN_I8(n)               ((n==15) ? ADD_IMM_I32(ir_alloc_i32(ir, addr),  8) : LOAD_GPR_I8(n))
+#define LOAD_RD_I8(d)               ((d==15) ? ADD_IMM_I32(ir_alloc_i32(ir, addr), 12) : LOAD_GPR_I8(d))
+#define LOAD_RN_I32(n)              ((n==15) ? ADD_IMM_I32(ir_alloc_i32(ir, addr),  8) : LOAD_GPR_I32(n))
+#define LOAD_RD_I32(d)              ((d==15) ? ADD_IMM_I32(ir_alloc_i32(ir, addr), 12) : LOAD_GPR_I32(d))
+
+#define LOAD_HOST_I32(ea)           ir_load_host(ir, ea, VALUE_I32)
+#define LOAD_HOST_I64(ea)           ir_load_host(ir, ea, VALUE_I64)
 
 /* clang-format on */
 
