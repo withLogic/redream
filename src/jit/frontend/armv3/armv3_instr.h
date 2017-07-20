@@ -175,16 +175,27 @@ INSTR(INVALID) {
   // INVALID_INSTR();
 }
 
+#define BRANCH_OFFSET() armv3_disasm_offset(i.branch.offset)
+
 //ARMV3_INSTR(B,       "b{cond} {expr}",                                 xxxx1010xxxxxxxxxxxxxxxxxxxxxxxx, 1, FLAG_SET_PC)
 /* B{cond} {expr} */
 INSTR(B) {
-  /* TODO */
+  // TODO
+  // CHECK_COND();
+
+  STORE_GPR_IMM_I32(15,  addr + 8 + BRANCH_OFFSET());
+  // ?? BRANCH_IMM_I32(addr + 8 + BRANCH_OFFSET());
 }
 
 //ARMV3_INSTR(BL,      "bl{cond} {expr}",                                xxxx1011xxxxxxxxxxxxxxxxxxxxxxxx, 1, FLAG_SET_PC)
 /* BL{cond} {expr} */
 INSTR(BL) {
-  /* TODO */
+  // TODO
+  // CHECK_COND();
+
+  STORE_GPR_IMM_I32(14, addr + 4);
+  STORE_GPR_IMM_I32(15, addr + 8 + BRANCH_OFFSET());
+  // ?? BRANCH_IMM_I32(addr + 8 + BRANCH_OFFSET());
 }
 
 //ARMV3_INSTR(AND,     "and{cond}{s} {rd}, {rn}, {expr}",                xxxx00x0000xxxxxxxxxxxxxxxxxxxxx, 1, FLAG_DATA)
@@ -651,11 +662,31 @@ INSTR(STM) {
 //ARMV3_INSTR(SWP,     "swp{cond}{b} {rd}, {rm}, [{rn}]",                xxxx00010x00xxxxxxxx00001001xxxx, 1, FLAG_SWP)
 /* SWP{cond}{b} {rd}, {rm}, [{rn}] */
 INSTR(SWP) {
-  /* TODO */
+  // TODO
+  // CHECK_COND();
+
+  I32 ea = LOAD_RN_I32(i.swp.rn);
+  I32 new_value = LOAD_RN_I32(i.swp.rm);
+  I32 old_value = I32_IMM(0);
+
+  if (i.swp.b) {
+    old_value = LOAD_I8(ea);
+    STORE_I8(ea, new_value);
+  } else {
+    old_value = LOAD_I32(ea);
+    STORE_I32(ea, new_value);
+  }
+
+  STORE_GPR_IMM_I32(15, addr + 4);
+  STORE_GPR_I32(i.swp.rd, old_value);
 }
 
 //ARMV3_INSTR(SWI,     "swi{cond} {imm}",                                xxxx1111xxxxxxxxxxxxxxxxxxxxxxxx, 1, FLAG_SWI)
 /* SWI{cond} {imm} */
 INSTR(SWI) {
-  /* TODO */
+  // TODO
+  //CHECK_COND();
+
+  STORE_GPR_IMM_I32(15, addr + 4);
+  CALL_SWI();
 }

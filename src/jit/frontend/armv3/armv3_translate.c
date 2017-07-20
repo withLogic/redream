@@ -236,30 +236,16 @@ static void store_guest(struct ir *ir, struct ir_value *addr,
                                       ir_call_1(ir, invalid_instr, data);                                                \
                                     }
 
-#define PREF_SQ_COND(c, addr)       {                                                                                \
-                                      struct ir_value *sq_prefetch = ir_alloc_i64(ir, (uint64_t)guest->sq_prefetch); \
-                                      struct ir_value *data = ir_alloc_i64(ir, (uint64_t)guest->data);               \
-                                      ir_call_cond_2(ir, c, sq_prefetch, data, addr);                                \
-                                    }
-
-#define SLEEP()                     {                                                                    \
-                                      struct ir_value *sleep = ir_alloc_i64(ir, (uint64_t)guest->sleep); \
-                                      struct ir_value *data = ir_alloc_i64(ir, (uint64_t)guest->data);   \
-                                      ir_call_1(ir, sleep, data);                                        \
-                                    }
-                                    
-#define LDTLB()                     {                                                                          \
-                                      struct ir_value *load_tlb = ir_alloc_i64(ir, (uint64_t)guest->load_tlb); \
-                                      struct ir_value *data = ir_alloc_i64(ir, (uint64_t)guest->data);         \
-                                      ir_call_1(ir, load_tlb, data);                                           \
+#define CALL_SWI()                  {                                                                                    \
+                                      struct ir_value *swi_func = ir_alloc_i64(ir, (uint64_t)guest->software_interrupt); \
+                                      struct ir_value *data = ir_alloc_i64(ir, (uint64_t)guest->data);                   \
+                                      ir_call_1(ir, swi_func, data);                                                     \
                                     }
 
 #define LOAD_RN_I8(n)   ((n==15) ? ADD_IMM_I32(ir_alloc_i32(ir, addr),  8) : LOAD_GPR_I8(n))
 #define LOAD_RD_I8(d)   ((d==15) ? ADD_IMM_I32(ir_alloc_i32(ir, addr), 12) : LOAD_GPR_I8(d))
 #define LOAD_RN_I32(n)  ((n==15) ? ADD_IMM_I32(ir_alloc_i32(ir, addr),  8) : LOAD_GPR_I32(n))
 #define LOAD_RD_I32(d)  ((d==15) ? ADD_IMM_I32(ir_alloc_i32(ir, addr), 12) : LOAD_GPR_I32(d))
-
-//TODO #define PARSE_SHIFT(addr, reg, shift, offset, carry)        { armv3_translate_parse_shift(addr, reg, shift, &offset, &carry); }
 
 /* clang-format on */
 
