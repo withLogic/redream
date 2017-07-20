@@ -61,6 +61,9 @@ static void store_guest(struct ir *ir, struct ir_value *addr,
 #define LOAD_CPSR()                 LOAD_CTX_I32(r[CPSR])
 #define STORE_CPSR(v)               STORE_CTX_I32(r[CPSR], v)
 
+#define LOAD_SPSR()                 LOAD_CTX_I32(r[SPSR])
+#define STORE_SPSR(v)               STORE_CTX_I32(r[SPSR], v)
+
 #define LOAD_I8(ea)                 ZEXT_I8_I32(load_guest(ir, ea, VALUE_I8,  use_fastmem(block, addr)))
 #define LOAD_I16(ea)                load_guest(ir, ea, VALUE_I16, use_fastmem(block, addr))
 #define LOAD_I32(ea)                load_guest(ir, ea, VALUE_I32, use_fastmem(block, addr))
@@ -244,6 +247,13 @@ static void store_guest(struct ir *ir, struct ir_value *addr,
                                       struct ir_value *data = ir_alloc_i64(ir, (uint64_t)guest->data);                          \
                                       ir_call_1(ir, restore_mode_func, data);                                                   \
                                     }
+
+#define SWITCH_MODE(sr)             {                                                                                           \
+                                      struct ir_value *switch_mode_func = ir_alloc_i64(ir, (uint64_t)guest->switch_mode);       \
+                                      struct ir_value *data = ir_alloc_i64(ir, (uint64_t)guest->data);                          \
+                                      ir_call_2(ir, switch_mode_func, data, ZEXT_I32_I64(sr));                                  \
+                                    }
+
 
 #define LOAD_RN_I8(n)               ((n==15) ? ADD_IMM_I32(ir_alloc_i32(ir, addr),  8) : LOAD_GPR_I8(n))
 #define LOAD_RD_I8(d)               ((d==15) ? ADD_IMM_I32(ir_alloc_i32(ir, addr), 12) : LOAD_GPR_I8(d))

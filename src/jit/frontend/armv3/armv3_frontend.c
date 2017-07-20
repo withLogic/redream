@@ -46,26 +46,10 @@ static void armv3_frontend_translate_code(struct jit_frontend *base,
     struct jit_opdef *def = armv3_get_opdef(data);
 
     union armv3_instr i = {data};
-    if  ( (def->op == ARMV3_OP_LDR && (i.raw >> 28) == COND_AL) ||
-          (def->op == ARMV3_OP_STR && (i.raw >> 28) == COND_AL) ||
-          (def->op == ARMV3_OP_SWP && (i.raw >> 28) == COND_AL) ||
-          (def->op == ARMV3_OP_SWI && (i.raw >> 28) == COND_AL) ||
-          (def->op == ARMV3_OP_B   && (i.raw >> 28) == COND_AL) ||
-          (def->op == ARMV3_OP_BL  && (i.raw >> 28) == COND_AL) ||
-          (def->op == ARMV3_OP_AND && /*!i.data.s &&*/ (i.raw >> 28) == COND_AL) ||
-          (def->op == ARMV3_OP_EOR && /*!i.data.s &&*/ (i.raw >> 28) == COND_AL) ||
-          (def->op == ARMV3_OP_ORR && /*!i.data.s &&*/ (i.raw >> 28) == COND_AL) ||
-          (def->op == ARMV3_OP_MOV && /*!i.data.s &&*/ (i.raw >> 28) == COND_AL) ||
-          (def->op == ARMV3_OP_BIC && /*!i.data.s &&*/ (i.raw >> 28) == COND_AL) ||
-          (def->op == ARMV3_OP_MVN && /*!i.data.s &&*/ (i.raw >> 28) == COND_AL) ||
-          (def->op == ARMV3_OP_ADD && /*!i.data.s &&*/ (i.raw >> 28) == COND_AL) ||
-          (def->op == ARMV3_OP_SUB && /*!i.data.s &&*/ (i.raw >> 28) == COND_AL) ||
-          (def->op == ARMV3_OP_RSB && /*!i.data.s &&*/ (i.raw >> 28) == COND_AL) ||
-          (def->op == ARMV3_OP_MUL && /*!i.mul.s  &&*/ (i.raw >> 28) == COND_AL) ||
-          (def->op == ARMV3_OP_MLA && /*!i.mul.s  &&*/ (i.raw >> 28) == COND_AL) ||
-          (def->op == ARMV3_OP_LDM && !i.blk.s  && (i.raw >> 28) == COND_AL) ||
-          (def->op == ARMV3_OP_STM && !i.blk.s  && (i.raw >> 28) == COND_AL)
-        )
+    // TODO : Missing conditional exec flags
+    // TODO : Missing LDM/STM S bit handling
+    // TODO : Check MSR/MRS implementation
+    if ((i.raw >> 28) == COND_AL)
     {
       int flags = 0;
       armv3_translate_cb cb = armv3_get_translator(data);

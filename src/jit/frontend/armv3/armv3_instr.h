@@ -62,15 +62,15 @@ static inline void armv3_translate_shift_ror( struct ir *ir,
   //*carry = (*out >> 31) & 0x1;
 }
 
+#define CARRY() (LSHR_IMM_I32(AND_IMM_I32(LOAD_CPSR(), C_MASK), C_BIT))
+
 static void armv3_translate_shift(  struct jit_block *block,
                                     struct ir *ir,
                                     enum armv3_shift_source src,
                                     enum armv3_shift_type type, I32 in,
                                     uint32_t n, I32 *out, I32 *carry) {
   *out = in;
-  // TODO: HANDLE CARRY
-  *carry = I32_IMM(0);
-  //*carry = C_SET(ctx->r[CPSR]);
+  *carry = CARRY();
 
   I32 shifts;
   if (src == SHIFT_REG) {
@@ -142,9 +142,7 @@ static inline void armv3_translate_parse_op2( struct jit_block *block,
       armv3_translate_shift_ror(ir, imm, I32_IMM(n), value, carry);
     } else {
       *value = imm;
-      *carry = I32_IMM(0);
-      // TODO HANDLE CARRY
-      //*carry = C_SET(ctx->r[CPSR]);
+      *carry = CARRY();
     }
   } else {
     /* op2 is as shifted register */
@@ -158,8 +156,6 @@ static inline void armv3_translate_parse_op2( struct jit_block *block,
 
 #define PARSE_OP2(value, carry) \
   armv3_translate_parse_op2(block, ir, addr, i, value, carry)
-
-//#define CARRY() (C_SET(CTX->r[CPSR]))
 
 static inline void armv3_translate_make_cpsr( struct jit_block *block,
                                               struct ir* ir,
@@ -369,43 +365,123 @@ INSTR(ADD) {
 //ARMV3_INSTR(ADC,     "adc{cond}{s} {rd}, {rn}, {expr}",                xxxx00x0101xxxxxxxxxxxxxxxxxxxxx, 1, FLAG_DATA)
 /* ADC{cond}{s} {rd}, {rn}, {expr} */
 INSTR(ADC) {
-  /* TODO */
+  // TODO
+  //CHECK_COND();
+
+  I32 rhs;
+  I32 carry;
+  I32 lhs = LOAD_RN_I32(i.data.rn);
+  PARSE_OP2(&rhs, &carry);
+  I32 res = ADD_I32(ADD_I32(lhs, rhs), carry);
+
+  STORE_GPR_IMM_I32(15, addr + 4);
+  STORE_GPR_I32(i.data.rd, res);
+
+  UPDATE_FLAGS_ADD();
 }
 
 //ARMV3_INSTR(SBC,     "sbc{cond}{s} {rd}, {rn}, {expr}",                xxxx00x0110xxxxxxxxxxxxxxxxxxxxx, 1, FLAG_DATA)
 /* SBC{cond}{s} {rd}, {rn}, {expr} */
 INSTR(SBC) {
-  /* TODO */
+  // TODO
+  //CHECK_COND();
+
+  I32 rhs;
+  I32 carry;
+  I32 lhs = LOAD_RN_I32(i.data.rn);
+  PARSE_OP2(&rhs, &carry);
+  I32 res = SUB_IMM_I32(ADD_I32(SUB_I32(lhs, rhs), carry), 1);
+
+  STORE_GPR_IMM_I32(15, addr + 4);
+  STORE_GPR_I32(i.data.rd, res);
+
+  UPDATE_FLAGS_SUB();
 }
 
 //ARMV3_INSTR(RSC,     "rsc{cond}{s} {rd}, {rn}, {expr}",                xxxx00x0111xxxxxxxxxxxxxxxxxxxxx, 1, FLAG_DATA)
 /* RSC{cond}{s} {rd}, {rn}, {expr} */
 INSTR(RSC) {
-  /* TODO */
+  // TODO
+  // CHECK_COND();
+
+  I32 lhs;
+  I32 carry;
+  PARSE_OP2(&lhs, &carry);
+  I32 rhs = LOAD_RN_I32(i.data.rn);
+  I32 res = SUB_IMM_I32(ADD_I32(SUB_I32(lhs, rhs), CARRY()), 1);
+
+  STORE_GPR_IMM_I32(15, addr + 4);
+  STORE_GPR_I32(i.data.rd, res);
+
+  UPDATE_FLAGS_SUB();
 }
 
 //ARMV3_INSTR(TST,     "tst{cond} {rn}, {expr}",                         xxxx00x10001xxxx0000xxxxxxxxxxxx, 1, FLAG_DATA)
 /* TST{cond} {rn}, {expr} */
 INSTR(TST) {
-  /* TODO */
+  // TODO
+  // CHECK_COND();
+
+  I32 rhs;
+  I32 carry;
+  I32 lhs = LOAD_RN_I32(i.data.rn);
+  PARSE_OP2(&rhs, &carry);
+  I32 res = AND_I32(lhs, rhs);
+
+  STORE_GPR_IMM_I32(15, addr + 4);
+
+  UPDATE_FLAGS_LOGICAL();
 }
 
 //ARMV3_INSTR(TEQ,     "teq{cond} {rn}, {expr}",                         xxxx00x10011xxxx0000xxxxxxxxxxxx, 1, FLAG_DATA)
 /* TEQ{cond} {rn}, {expr} */
 INSTR(TEQ) {
-  /* TODO */
+  // TODO
+  // CHECK_COND();
+
+  I32 rhs;
+  I32 carry;
+  I32 lhs = LOAD_RN_I32(i.data.rn);
+  PARSE_OP2(&rhs, &carry);
+  I32 res = XOR_I32(lhs, rhs);
+
+  STORE_GPR_IMM_I32(15, addr + 4);
+
+  UPDATE_FLAGS_LOGICAL();
 }
 
 //ARMV3_INSTR(CMP,     "cmp{cond} {rn}, {expr}",                         xxxx00x10101xxxx0000xxxxxxxxxxxx, 1, FLAG_DATA)
 /* CMP{cond} {rn}, {expr} */
 INSTR(CMP) {
-  /* TODO */
+  // TODO
+  // CHECK_COND();
+
+  I32 rhs;
+  I32 carry;
+  I32 lhs = LOAD_RN_I32(i.data.rn);
+  PARSE_OP2(&rhs, &carry);
+  I32 res = SUB_I32(lhs, rhs);
+
+  STORE_GPR_IMM_I32(15, addr + 4);
+
+  UPDATE_FLAGS_SUB();
 }
 
 //ARMV3_INSTR(CMN,     "cmn{cond} {rn}, {expr}",                         xxxx00x10111xxxx0000xxxxxxxxxxxx, 1, FLAG_DATA)
 /* CMN{cond} {rn}, {expr} */
 INSTR(CMN) {
-  /* TODO */
+  // TODO
+  // CHECK_COND();
+
+  I32 rhs;
+  I32 carry;
+  I32 lhs = LOAD_RN_I32(i.data.rn);
+  PARSE_OP2(&rhs, &carry);
+  I32 res = ADD_I32(lhs, rhs);
+
+  STORE_GPR_IMM_I32(15, addr + 4);
+
+  UPDATE_FLAGS_ADD();
 }
 
 //ARMV3_INSTR(ORR,     "orr{cond}{s} {rd}, {rn}, {expr}",                xxxx00x1100xxxxxxxxxxxxxxxxxxxxx, 1, FLAG_DATA)
@@ -480,13 +556,57 @@ INSTR(MVN) {
 //ARMV3_INSTR(MRS,     "mrs{cond} {rd}, {psr}",                          xxxx00010x001111xxxx000000000000, 1, FLAG_PSR)
 /* MRS{cond} {rd}, {psr} */
 INSTR(MRS) {
-  /* TODO */
+  // TODO
+  // CHECK_COND();
+
+  if (i.mrs.src_psr) {
+    STORE_GPR_I32(i.mrs.rd, LOAD_SPSR());
+  } else {
+    STORE_GPR_I32(i.mrs.rd, LOAD_CPSR());
+  }
+
+  STORE_GPR_IMM_I32(15, addr + 4);  
 }
+
+#define MODE() (AND_IMM_I32(LOAD_CPSR(), M_MASK))
 
 //ARMV3_INSTR(MSR,     "msr{cond} {psr}, {expr}",                        xxxx00x10x10xxxx111100000000xxxx, 1, FLAG_PSR)
 /* MSR{cond} {psr}, {expr} */
 INSTR(MSR) {
-  /* TODO */
+  // TODO
+  // CHECK_COND();
+
+  I32 newsr;
+  if (i.msr.i) {
+    I32 carry;
+    armv3_translate_shift_ror(ir, I32_IMM(i.msr_imm.imm), I32_IMM(i.msr_imm.rot << 1), &newsr, &carry);
+  } else {
+    newsr = LOAD_RN_I32(i.msr_reg.rm);
+  }
+
+  if (i.msr.dst_psr) {
+    I32 oldsr = LOAD_SPSR();
+
+    /* control flags can't be modified when all bit isn't set */
+    if (!i.msr.all) {
+      newsr = OR_I32(AND_IMM_I32(newsr, 0xf0000000), AND_IMM_I32(oldsr, 0x0fffffff));
+    }
+
+    /* SPSR can't be modified in user and system mode */
+    STORE_GPR_I32(SPSR, SELECT_I32(AND_I32(CMPUGT_IMM_I32(MODE(), MODE_USR), CMPULE_IMM_I32(MODE(), MODE_SYS)), newsr, oldsr));
+  } else {
+    I32 oldsr = LOAD_CPSR();
+
+    /* control flags can't be modified when all bit isn't set / in user mode */
+    if (!i.msr.all) {
+      newsr = OR_I32(AND_IMM_I32(newsr, 0xf0000000), AND_IMM_I32(oldsr, 0x0fffffff));
+    }
+    newsr = SELECT_I32(CMPEQ_IMM_I32(MODE(), MODE_USR), OR_I32(AND_IMM_I32(newsr, 0xf0000000), AND_IMM_I32(oldsr, 0x0fffffff)), newsr);
+
+    SWITCH_MODE(newsr);
+  }
+
+  STORE_GPR_IMM_I32(15, addr + 4);  
 }
 
 /*
