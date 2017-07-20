@@ -640,6 +640,12 @@ void gdrom_get_drive_mode(struct gdrom *gd, struct gd_hw_info *info) {
   *info = gd->hw_info;
 }
 
+void gdrom_get_disc_id(struct gdrom *gd, char *id, int size) {
+  CHECK_NOTNULL(gd->disc);
+
+  disc_get_id(gd->disc, id, size);
+}
+
 void gdrom_dma_end(struct gdrom *gd) {
   LOG_GDROM("gd_dma_end");
 }
@@ -681,18 +687,6 @@ void gdrom_set_disc(struct gdrom *gd, struct disc *disc) {
     }
 
     gd->disc = disc;
-
-    /* print meta info */
-    struct disc_meta meta;
-    disc_get_meta(gd->disc, &meta);
-
-    char name[256];
-    char version[16];
-    char id[16];
-    strncpy_trim_spaces(name, meta.name, sizeof(meta.name));
-    strncpy_trim_spaces(version, meta.version, sizeof(meta.version));
-    strncpy_trim_spaces(id, meta.id, sizeof(meta.id));
-    LOG_INFO("gdrom_set_disc %s %s - %s", name, version, id);
   }
 
   /* perform "soft reset" of internal state */

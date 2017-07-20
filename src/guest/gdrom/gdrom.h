@@ -15,6 +15,7 @@ void gdrom_dma_begin(struct gdrom *gd);
 int gdrom_dma_read(struct gdrom *gd, uint8_t *data, int n);
 void gdrom_dma_end(struct gdrom *gd);
 
+void gdrom_get_disc_id(struct gdrom *gd, char *id, int size);
 void gdrom_get_drive_mode(struct gdrom *gd, struct gd_hw_info *info);
 void gdrom_set_drive_mode(struct gdrom *gd, struct gd_hw_info *info);
 void gdrom_get_status(struct gdrom *gd, struct gd_spi_status *stat);

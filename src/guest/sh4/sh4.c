@@ -114,7 +114,7 @@ static void sh4_invalid_instr(void *data) {
     return;
   }
 
-  LOG_FATAL("Unhandled invalid instruction at 0x%08x", sh4->ctx.pc);
+  LOG_FATAL("unhandled invalid instruction at 0x%08x", sh4->ctx.pc);
 }
 
 static void sh4_run(struct device *dev, int64_t ns) {
@@ -223,7 +223,7 @@ void sh4_reset(struct sh4 *sh4, uint32_t pc) {
   sh4->execute_if->running = 1;
 }
 
-#if ENABLE_IMGUI
+#ifdef HAVE_IMGUI
 void sh4_debug_menu(struct sh4 *sh4) {
   struct jit *jit = sh4->jit;
 
