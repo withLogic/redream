@@ -161,14 +161,92 @@ static inline void armv3_translate_parse_op2( struct jit_block *block,
 
 //#define CARRY() (C_SET(CTX->r[CPSR]))
 
-#define UPDATE_FLAGS_LOGICAL()                            \
-  if (i.data.s) {                                         \
-    printf("\nS bit, this should not happen, exiting\n"); \
-    exit(-1);                                             \
-    /*armv3_fallback_update_flags_logical(res, carry);*/  \
-    /*if (i.data.rd == 15) {*/                            \
-    /*  guest->restore_mode(guest->data);*/               \
-    }
+static inline void armv3_translate_make_cpsr( struct jit_block *block,
+                                              struct ir* ir,
+                                              I32* cpsr, I32 n, I32 z,
+                                              I32 c, I32 v)
+{
+  *cpsr = OR_I32(
+          OR_I32(
+          OR_I32(
+          OR_I32(AND_IMM_I32(*cpsr, ~(N_MASK | Z_MASK | C_MASK | V_MASK)),
+                              SHL_IMM_I32(n, N_BIT)),
+                              SHL_IMM_I32(z, Z_BIT)),
+                              SHL_IMM_I32(c, C_BIT)),
+                              SHL_IMM_I32(v, V_BIT));
+}
+
+#define MAKE_CPSR(cpsr, n, z, c, v)                                   \
+  armv3_translate_make_cpsr(block, ir, cpsr, n, z, c, v);
+
+static inline void armv3_translate_update_flags_logical(
+                                              struct jit_block *block,
+                                              struct ir* ir,
+                                              I32 res, I32 carry) {
+  I32 zero = I32_IMM(0);
+  I32 one = I32_IMM(1);
+  I32 n = SELECT_I32(AND_IMM_I32(res, 0x80000000), one, zero);
+  I32 z = SELECT_I32(res, zero, one);
+  I32 c = carry;
+  I32 v = zero;
+  I32 cpsr = LOAD_CPSR();
+  MAKE_CPSR(&cpsr, n, z, c ,v);
+  STORE_CPSR(cpsr);
+}
+
+static inline void armv3_translate_update_flags_sub(  struct jit_block *block,
+                                                      struct ir* ir,
+                                                      I32 lhs, I32 rhs,
+                                                      I32 res) {
+  I32 zero = I32_IMM(0);
+  I32 one = I32_IMM(1);
+  I32 n = SELECT_I32(AND_IMM_I32(res, 0x80000000), one, zero);
+  I32 z = SELECT_I32(res, zero, one);
+  I32 c = LSHR_IMM_I32(NOT_I32(OR_I32(AND_I32(NOT_I32(lhs), rhs), AND_I32(OR_I32(NOT_I32(lhs), rhs), res))), 31);
+  I32 v = LSHR_IMM_I32(AND_I32(XOR_I32(lhs, rhs), XOR_I32(res, lhs)), 31);
+  I32 cpsr = LOAD_CPSR();
+  MAKE_CPSR(&cpsr, n, z, c ,v);
+  STORE_CPSR(cpsr);
+}
+
+static inline void armv3_translate_update_flags_add(  struct jit_block *block,
+                                                      struct ir* ir,
+                                                      I32 lhs, I32 rhs,
+                                                      I32 res) {
+  I32 zero = I32_IMM(0);
+  I32 one = I32_IMM(1);
+  I32 n = SELECT_I32(AND_IMM_I32(res, 0x80000000), one, zero);
+  I32 z = SELECT_I32(res, zero, one);
+  I32 c = LSHR_IMM_I32(OR_I32(AND_I32(lhs, rhs), AND_I32(OR_I32(lhs, rhs), NOT_I32(res))), 31);
+  I32 v = LSHR_IMM_I32(AND_I32(XOR_I32(res, lhs), XOR_I32(res, rhs)), 31);
+  I32 cpsr = LOAD_CPSR();
+  MAKE_CPSR(&cpsr, n, z, c ,v);
+  STORE_CPSR(cpsr);
+}
+
+#define UPDATE_FLAGS_LOGICAL()                                      \
+  if (i.data.s) {                                                   \
+    armv3_translate_update_flags_logical(block, ir, res, carry);    \
+    if (i.data.rd == 15) {                                          \
+      RESTORE_MODE();                                               \
+    }                                                               \
+  }
+
+#define UPDATE_FLAGS_SUB()                                        \
+  if (i.data.s) {                                                 \
+    armv3_translate_update_flags_sub(block, ir, lhs, rhs, res);   \
+    if (i.data.rd == 15) {                                        \
+      RESTORE_MODE();                                             \
+    }                                                             \
+  }
+
+#define UPDATE_FLAGS_ADD()                                        \
+  if (i.data.s) {                                                 \
+    armv3_translate_update_flags_add(block, ir, lhs, rhs, res);   \
+    if (i.data.rd == 15) {                                        \
+      RESTORE_MODE();                                             \
+    }                                                             \
+  }
 
 INSTR(INVALID) {
   /* TODO */
@@ -213,7 +291,6 @@ INSTR(AND) {
   STORE_GPR_IMM_I32(15, addr + 4);
   STORE_GPR_I32(i.data.rd, res);
 
-  // TODO
   UPDATE_FLAGS_LOGICAL();
 }
 
@@ -232,7 +309,6 @@ INSTR(EOR) {
   STORE_GPR_IMM_I32(15, addr + 4);
   STORE_GPR_I32(i.data.rd, res);
 
-  // TODO
   UPDATE_FLAGS_LOGICAL();
 }
 
@@ -251,8 +327,7 @@ INSTR(SUB) {
   STORE_GPR_IMM_I32(15, addr + 4);
   STORE_GPR_I32(i.data.rd, res);
 
-  // TODO
-  // UPDATE_FLAGS_SUB();
+  UPDATE_FLAGS_SUB();
 }
 
 //ARMV3_INSTR(RSB,     "rsb{cond}{s} {rd}, {rn}, {expr}",                xxxx00x0011xxxxxxxxxxxxxxxxxxxxx, 1, FLAG_DATA)
@@ -270,8 +345,7 @@ INSTR(RSB) {
   STORE_GPR_IMM_I32(15, addr + 4);
   STORE_GPR_I32(i.data.rd, res);
 
-  // TODO
-  // UPDATE_FLAGS_SUB();
+  UPDATE_FLAGS_SUB();
 }
 
 //ARMV3_INSTR(ADD,     "add{cond}{s} {rd}, {rn}, {expr}",                xxxx00x0100xxxxxxxxxxxxxxxxxxxxx, 1, FLAG_DATA)
@@ -289,8 +363,7 @@ INSTR(ADD) {
   STORE_GPR_IMM_I32(15, addr + 4);
   STORE_GPR_I32(i.data.rd, res);
 
-  // TODO
-  // UPDATE_FLAGS_ADD();
+  UPDATE_FLAGS_ADD();
 }
 
 //ARMV3_INSTR(ADC,     "adc{cond}{s} {rd}, {rn}, {expr}",                xxxx00x0101xxxxxxxxxxxxxxxxxxxxx, 1, FLAG_DATA)
@@ -350,7 +423,6 @@ INSTR(ORR) {
   STORE_GPR_IMM_I32(15, addr + 4);
   STORE_GPR_I32(i.data.rd, res);
 
-  // TODO
   UPDATE_FLAGS_LOGICAL();
 }
 
@@ -367,7 +439,6 @@ INSTR(MOV) {
   STORE_GPR_IMM_I32(15, addr + 4);
   STORE_GPR_I32(i.data.rd, res);
 
-  // TODO
   UPDATE_FLAGS_LOGICAL();
 }
 
@@ -386,7 +457,6 @@ INSTR(BIC) {
   STORE_GPR_IMM_I32(15, addr + 4);
   STORE_GPR_I32(i.data.rd, res);
 
-  // TODO
   UPDATE_FLAGS_LOGICAL();
 }
 
@@ -404,7 +474,6 @@ INSTR(MVN) {
   STORE_GPR_IMM_I32(15, addr + 4);
   STORE_GPR_I32(i.data.rd, res);
 
-  // TODO
   UPDATE_FLAGS_LOGICAL();
 }
 
@@ -423,24 +492,34 @@ INSTR(MSR) {
 /*
  * multiply and multiply-accumulate
  */
-#define UPDATE_FLAGS_MUL()                          \
-  if (i.mul.s) {                                    \
-    printf("This should not happen, exiting\n");    \
-    exit(-1);                                       \
-    /*armv3_fallback_update_flags_mul(CTX, res);*/  \
+#define UPDATE_FLAGS_MUL()                              \
+  if (i.mul.s) {                                        \
+    armv3_translate_update_flags_mul(block, ir, res);   \
   }
 
-// TODO
-//#define MAKE_CPSR_NZ(cpsr, n, z) \
-// (((cpsr) & ~(N_MASK | Z_MASK)) | ((n) << N_BIT) | ((z) << Z_BIT))
+static inline void armv3_translate_make_cpsr_nz( struct jit_block *block,
+                                                struct ir* ir,
+                                                I32* cpsr, I32 n, I32 z)
+{
+  *cpsr = OR_I32(
+          OR_I32(AND_IMM_I32(*cpsr, ~(N_MASK | Z_MASK)),
+                              SHL_IMM_I32(n, N_BIT)),
+                              SHL_IMM_I32(z, Z_BIT));
+}
 
-// TODO
-//static void armv3_translate_update_flags_mul(struct armv3_context *ctx,
-//                                            uint32_t res) {
-//  int n = res & 0x80000000 ? 1 : 0;
-//  int z = res ? 0 : 1;
-//  ctx->r[CPSR] = MAKE_CPSR_NZ(ctx->r[CPSR], n, z);
-//}
+#define MAKE_CPSR_NZ(cpsr, n, z)                                   \
+  armv3_translate_make_cpsr_nz(block, ir, cpsr, n, z);
+
+static void armv3_translate_update_flags_mul( struct jit_block *block,
+                                              struct ir *ir, I32 res) {
+  I32 zero = I32_IMM(0);
+  I32 one = I32_IMM(1);
+  I32 n = SELECT_I32(AND_IMM_I32(res, 0x80000000), one, zero);
+  I32 z = SELECT_I32(res, zero, one);
+  I32 cpsr = LOAD_CPSR();
+  MAKE_CPSR_NZ(&cpsr, n, z);
+  STORE_CPSR(cpsr);
+}
 
 //ARMV3_INSTR(MUL,     "mul{cond}{s} {rd}, {rm}, {rs}",                  xxxx0000000xxxxxxxxxxxxx1001xxxx, 1, FLAG_MUL)
 /* MUL{cond}{s} {rd}, {rm}, {rs} */
@@ -455,7 +534,6 @@ INSTR(MUL) {
   STORE_GPR_IMM_I32(15, addr + 4);
   STORE_GPR_I32(i.mul.rd, res);
 
-  // TODO
   UPDATE_FLAGS_MUL();
 }
 
@@ -473,7 +551,6 @@ INSTR(MLA) {
   STORE_GPR_IMM_I32(15, addr + 4);
   STORE_GPR_I32(i.mul.rd, res);
 
-  // TODO
   UPDATE_FLAGS_MUL();
 }
 

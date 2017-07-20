@@ -48,21 +48,18 @@ static void store_guest(struct ir *ir, struct ir_value *addr,
 #define LOAD_CTX_I16(m)             ir_load_context(ir, offsetof(struct armv3_context, m), VALUE_I16)
 #define LOAD_CTX_I32(m)             ir_load_context(ir, offsetof(struct armv3_context, m), VALUE_I32)
 //#define LOAD_CTX_I64(m)           ir_load_context(ir, offsetof(struct armv3_context, m), VALUE_I64)
-//#define LOAD_CTX_F32(m)           ir_load_context(ir, offsetof(struct armv3_context, m), VALUE_F32)
-//#define LOAD_CTX_F64(m)           ir_load_context(ir, offsetof(struct armv3_context, m), VALUE_F64)
-//#define LOAD_CTX_V128(m)          ir_load_context(ir, offsetof(struct armv3_context, m), VALUE_V128)
 #define STORE_CTX_I32(m, v)         ir_store_context(ir, offsetof(struct armv3_context, m), v);
 //#define STORE_CTX_I64(m, v)       ir_store_context(ir, offsetof(struct armv3_context, m), v);
-//#define STORE_CTX_F32(m, v)       ir_store_context(ir, offsetof(struct armv3_context, m), v);
-//#define STORE_CTX_F64(m, v)       ir_store_context(ir, offsetof(struct armv3_context, m), v);
-//#define STORE_CTX_V128(m, v)      ir_store_context(ir, offsetof(struct armv3_context, m), v);
 #define STORE_CTX_IMM_I32(m, v)     STORE_CTX_I32(m, ir_alloc_i32(ir, v))
 
 #define LOAD_GPR_I8(n)              LOAD_CTX_I8(r[n])
 #define LOAD_GPR_I16(n)             LOAD_CTX_I16(r[n])
 #define LOAD_GPR_I32(n)             LOAD_CTX_I32(r[n])
-#define STORE_GPR_I32(n, v)         STORE_CTX_I32(r[n], v);
+#define STORE_GPR_I32(n, v)         STORE_CTX_I32(r[n], v)
 #define STORE_GPR_IMM_I32(n, v)     STORE_CTX_IMM_I32(r[n], v)
+
+#define LOAD_CPSR()                 LOAD_CTX_I32(r[CPSR])
+#define STORE_CPSR(v)               STORE_CTX_I32(r[CPSR], v)
 
 #define LOAD_I8(ea)                 ZEXT_I8_I32(load_guest(ir, ea, VALUE_I8,  use_fastmem(block, addr)))
 #define LOAD_I16(ea)                load_guest(ir, ea, VALUE_I16, use_fastmem(block, addr))
@@ -240,6 +237,12 @@ static void store_guest(struct ir *ir, struct ir_value *addr,
                                       struct ir_value *swi_func = ir_alloc_i64(ir, (uint64_t)guest->software_interrupt); \
                                       struct ir_value *data = ir_alloc_i64(ir, (uint64_t)guest->data);                   \
                                       ir_call_1(ir, swi_func, data);                                                     \
+                                    }
+
+#define RESTORE_MODE()              {                                                                                   \
+                                      struct ir_value *swi_func = ir_alloc_i64(ir, (uint64_t)guest->restore_mode);      \
+                                      struct ir_value *data = ir_alloc_i64(ir, (uint64_t)guest->data);                  \
+                                      ir_call_1(ir, swi_func, data);                                                    \
                                     }
 
 #define LOAD_RN_I8(n)   ((n==15) ? ADD_IMM_I32(ir_alloc_i32(ir, addr),  8) : LOAD_GPR_I8(n))
