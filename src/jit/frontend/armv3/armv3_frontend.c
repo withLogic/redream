@@ -3,9 +3,11 @@
 #include "jit/frontend/armv3/armv3_disasm.h"
 #include "jit/frontend/armv3/armv3_fallback.h"
 #include "jit/frontend/armv3/armv3_guest.h"
+#include "jit/frontend/armv3/armv3_translate.h"
 #include "jit/ir/ir.h"
 #include "jit/jit.h"
 #include "jit/jit_guest.h"
+#include "jit/jit_frontend.h"
 
 struct armv3_frontend {
   struct jit_frontend;
@@ -53,8 +55,23 @@ static void armv3_frontend_translate_code(struct jit_frontend *base,
     uint32_t data = guest->r32(guest->space, addr);
     struct jit_opdef *def = armv3_get_opdef(data);
 
-    ir_source_info(ir, addr, 12);
-    ir_fallback(ir, def->fallback, addr, data);
+    union armv3_instr i = {data};
+    // TODO : Missing conditional exec flags
+    // TODO : Missing LDM/STM S bit handling
+    // TODO : Check MSR/MRS implementation
+    if ((i.raw >> 28) == COND_AL)
+    {
+      int flags = 0;
+      armv3_translate_cb cb = armv3_get_translator(data);
+      CHECK_NOTNULL(cb);
+      ir_source_info(ir, addr, 12);
+      cb(guest, NULL/*block*/, ir, addr, i, flags);
+    }
+    else
+    {
+        ir_source_info(ir, addr, 12);
+        ir_fallback(ir, def->fallback, addr, data);
+    }
 
     offset += 4;
   }
